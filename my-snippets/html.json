@@ -1,0 +1,7 @@
+{
+	"tag wrap selection": {
+		"prefix": "tagwrap",
+		"body": "<${1:tagName}>\n\t$TM_SELECTED_TEXT\n</${1}>",
+		"description": "an tag"
+	}
+}
