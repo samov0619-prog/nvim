@@ -21,6 +21,7 @@ return {
 				javascriptreact = { formatter = "prettier", require_prettier = true },
 				typescript      = { formatter = "prettier", require_prettier = true },
 				typescriptreact = { formatter = "prettier", require_prettier = true },
+				vue             = { formatter = "prettier", require_prettier = true },
 				json            = { formatter = "prettier", require_prettier = true },
 				html            = { formatter = "prettier", require_prettier = true },
 				yaml            = { formatter = "prettier", require_prettier = true },
