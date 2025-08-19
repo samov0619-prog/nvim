@@ -45,7 +45,7 @@ function M.setup(opts)
 			local current_layout = vim.fn.libcall(xkb_switch_lib, 'Xkb_Switch_getXkbLayout', '')
 
 			-- Check if current layout is US-based (ABC, US, etc.)
-			if current_layout:match('ABC') or current_layout:match('US') or current_layout:match('us') then
+			if current_layout:match('ABC') or current_layout:match('US$') or current_layout:match('us$') then
 				callback(0) -- US layout
 			else
 				callback(1) -- Non-US layout
@@ -176,8 +176,9 @@ function M.setup(opts)
 
 	-- === MACOS: Find US layout variation ===
 	local user_us_layout_variation = nil
+	local user_layouts = vim.fn.systemlist('issw -l')
+
 	if is_macos then
-		local user_layouts = vim.fn.systemlist('issw -l')
 		-- Find the used US layout (ABC, US, etc.)
 		for _, value in ipairs(user_layouts) do
 			if value:match('ABC') or value:match('US') then
@@ -199,18 +200,18 @@ function M.setup(opts)
 	-- === MACOS: Function to switch layout using library ===
 	local function switch_layout_raw_macos(layout_index)
 		vim.schedule(function()
-			if layout_index == 0 then
+			local current = vim.fn.libcall(xkb_switch_lib, 'Xkb_Switch_getXkbLayout', '')
+
+			if layout_index == 0 and current ~= user_us_layout_variation then
 				-- Switch to US layout
 				vim.fn.libcall(xkb_switch_lib, 'Xkb_Switch_setXkbLayout', user_us_layout_variation)
-			else
+			elseif layout_index == 1 then
 				-- For non-US, we need to get the saved layout or cycle through available
 				-- This is simplified - in practice you might want to store actual layout names
-				local current = vim.fn.libcall(xkb_switch_lib, 'Xkb_Switch_getXkbLayout', '')
 				if current == user_us_layout_variation then
 					-- If currently US, switch to first non-US layout
-					local user_layouts = vim.fn.systemlist('issw -l')
 					for _, layout in ipairs(user_layouts) do
-						if not (layout:match('ABC') or layout:match('US')) then
+						if not (layout:match('ABC') or layout:match('US$')) then
 							vim.fn.libcall(xkb_switch_lib, 'Xkb_Switch_setXkbLayout', layout)
 							break
 						end
@@ -251,6 +252,13 @@ function M.setup(opts)
 	end
 
 	local function switch_layout_checked(layout_index)
+		-- === MACOS: Use library-based checked switching ===
+		if is_macos then
+			switch_layout_raw_macos(layout_index)
+			return
+		end
+		-- === END MACOS ===
+
 		-- Сначала «асинхронно» получаем, что сейчас реально стоит
 		get_current_layout_index_async(function(real_now)
 			-- real_now может быть 0, 1 или nil
@@ -267,13 +275,6 @@ function M.setup(opts)
 			if real_now == layout_index then
 				return
 			end
-
-			-- === MACOS: Use library-based checked switching ===
-			if is_macos then
-				switch_layout_raw_macos(layout_index)
-				return
-			end
-			-- === END MACOS ===
 
 			-- Нужно переключить: кидаем асинхронную команду
 			vim.fn.jobstart(
@@ -318,7 +319,9 @@ function M.setup(opts)
 					if now then
 						saved_layout_index = now
 					end
-					switch_layout_raw(M.us_layout_index)
+					if now ~= 0 then
+						switch_layout_raw(M.us_layout_index)
+					end
 				end)
 			end)
 		end
@@ -340,6 +343,7 @@ function M.setup(opts)
 		pattern = "*",
 		callback = function()
 			vim.schedule(function()
+				switch_layout_raw(saved_layout_index)
 				get_current_layout_index_async(function(now)
 					if now then
 						saved_layout_index = now
@@ -355,16 +359,15 @@ function M.setup(opts)
 		callback = function()
 			vim.schedule(function()
 				local mode = vim.fn.mode()
-				if mode == 'i' or mode == 'ic' then
-					get_current_layout_index_async(function(now)
-						if now then
-							saved_layout_index = now
-						end
+				get_current_layout_index_async(function(now)
+					if now then
+						saved_layout_index = now
+					end
+					if mode == 'i' or mode == 'ic' then
 						switch_layout_raw(saved_layout_index)
-					end)
-				else
-					switch_layout_checked(M.us_layout_index)
-				end
+					end
+				end)
+				switch_layout_checked(M.us_layout_index)
 			end)
 		end
 	})
