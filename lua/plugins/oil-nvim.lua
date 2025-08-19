@@ -6,6 +6,9 @@ return {
 		lazy = false,
 		config = function()
 			require("oil").setup({
+				keymaps = {
+					["."] = { "actions.toggle_hidden", mode = "n" },
+				},
 				win_options = {
 					signcolumn = "auto",
 				},

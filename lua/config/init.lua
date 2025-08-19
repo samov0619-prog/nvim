@@ -2,9 +2,13 @@ local opts = { noremap = true, silent = true }
 local M = require("config.functions.utils")
 local described = M.described
 
+local os_name = vim.uv.os_uname().sysname
 -- SHELL --
-vim.opt.shell = '/usr/bin/zsh'
-
+if os_name == "Darwin" then
+	vim.opt.shell = '/bin/zsh'
+else
+	vim.opt.shell = '/usr/bin/zsh'
+end
 -- ENV --
 vim.env.NVIM_CFG = vim.fn.stdpath("config")
 

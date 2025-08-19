@@ -2,24 +2,34 @@ local opts = { noremap = true, silent = true }
 local M = require("config.functions.utils")
 local described = M.described
 
+local os_name = vim.uv.os_uname().sysname
+
 -- WINDOWS NAVIGATION --
--- (t)
-vim.keymap.set('t', '<A-h>', '<C-\\><C-N><C-w>h', described(opts, "go to left window"))
-vim.keymap.set('t', '<A-j>', '<C-\\><C-N><C-w>j', described(opts, "go to down window"))
-vim.keymap.set('t', '<A-k>', '<C-\\><C-N><C-w>k', described(opts, "go to up window"))
-vim.keymap.set('t', '<A-l>', '<C-\\><C-N><C-w>l', described(opts, "go to right window"))
+if os_name == "Darwin" then
+	-- (i, t)
+	vim.keymap.set({ 'i', 't' }, '˙', '<C-\\><C-N><C-w>h', described(opts, "go to left window"))
+	vim.keymap.set({ 'i', 't' }, '∆', '<C-\\><C-N><C-w>j', described(opts, "go to down window"))
+	vim.keymap.set({ 'i', 't' }, '˚', '<C-\\><C-N><C-w>k', described(opts, "go to up window"))
+	vim.keymap.set({ 'i', 't' }, '¬', '<C-\\><C-N><C-w>l', described(opts, "go to right window"))
 
--- (i)
-vim.keymap.set('i', '<A-h>', '<C-\\><C-N><C-w>h', described(opts, "go to left window"))
-vim.keymap.set('i', '<A-j>', '<C-\\><C-N><C-w>j', described(opts, "go to down window"))
-vim.keymap.set('i', '<A-k>', '<C-\\><C-N><C-w>k', described(opts, "go to up window"))
-vim.keymap.set('i', '<A-l>', '<C-\\><C-N><C-w>l', described(opts, "go to right window"))
+	-- (n)
+	vim.keymap.set('n', '˙', '<C-w>h', described(opts, "go to left window"))
+	vim.keymap.set('n', '∆', '<C-w>j', described(opts, "go to down window"))
+	vim.keymap.set('n', '˚', '<C-w>k', described(opts, "go to up window"))
+	vim.keymap.set('n', '¬', '<C-w>l', described(opts, "go to right window"))
+else
+	-- (i, t)
+	vim.keymap.set({ 'i', 't' }, '<A-h>', '<C-\\><C-N><C-w>h', described(opts, "go to left window"))
+	vim.keymap.set({ 'i', 't' }, '<A-j>', '<C-\\><C-N><C-w>j', described(opts, "go to down window"))
+	vim.keymap.set({ 'i', 't' }, '<A-k>', '<C-\\><C-N><C-w>k', described(opts, "go to up window"))
+	vim.keymap.set({ 'i', 't' }, '<A-l>', '<C-\\><C-N><C-w>l', described(opts, "go to right window"))
 
--- (n)
-vim.keymap.set('n', '<A-h>', '<C-w>h', described(opts, "go to left window"))
-vim.keymap.set('n', '<A-j>', '<C-w>j', described(opts, "go to down window"))
-vim.keymap.set('n', '<A-k>', '<C-w>k', described(opts, "go to up window"))
-vim.keymap.set('n', '<A-l>', '<C-w>l', described(opts, "go to right window"))
+	-- (n)
+	vim.keymap.set('n', '<A-h>', '<C-w>h', described(opts, "go to left window"))
+	vim.keymap.set('n', '<A-j>', '<C-w>j', described(opts, "go to down window"))
+	vim.keymap.set('n', '<A-k>', '<C-w>k', described(opts, "go to up window"))
+	vim.keymap.set('n', '<A-l>', '<C-w>l', described(opts, "go to right window"))
+end
 
 -- SCRATCH BUFF --
 vim.keymap.set('n', '<leader>scr', function()
@@ -36,7 +46,11 @@ vim.keymap.set('n', '<leader>th', ':belowright sp | terminal<CR> i', described(o
 vim.keymap.set('n', '<leader>tv', ':belowright vsp | terminal<CR> i', described(opts, "open terminal vertical"))
 -- Open external terminal to wd
 vim.keymap.set('n', '<leader>tx', function()
-	vim.fn.system('kitty --directory="' .. vim.fn.getcwd() .. '" &')
+	if os_name == "Darwin" then
+		vim.fn.jobstart({ 'open', '-n', '-a', 'Kitty', '--args', '--directory=' .. vim.fn.getcwd() })
+	else
+		vim.fn.system('kitty --directory="' .. vim.fn.getcwd() .. '" &')
+	end
 end, described(opts, "open external terminal"))
 -- To normal from (t)
 vim.keymap.set('t', '<C-[>', '<C-\\><C-n>', described(opts, "exit terminal mode"))
