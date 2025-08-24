@@ -53,7 +53,7 @@ return {
 						},
 					},
 					prettier = {
-						prepend_args = { "--use-tabs", "--tab-width", "4" },
+						prepend_args = { "--end-of-line", "auto", "--no-bracket-spacing", "--print-width", "200", "--single-quote", "--tab-width", "2" },
 						-- оборачиваем prettier в логирующую функцию
 						run = function(self, ...)
 							vim.notify("[FORMAT] Trying prettier")

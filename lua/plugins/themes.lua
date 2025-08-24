@@ -2,6 +2,24 @@ local uv = vim.uv
 
 return {
 	{
+		"cormacrelf/dark-notify",
+		lazy = false,
+		cond = function()
+			return vim.uv.os_uname().sysname == "Darwin"
+		end,
+		config = function()
+			local os_theme_file = vim.fn.expand("~/.config/theme/current_theme")
+
+			vim.fn.mkdir(vim.fn.fnamemodify(os_theme_file, ":h"), "p")
+
+			require('dark_notify').run({
+				onchange = function(mode)
+					vim.fn.writefile({ mode }, os_theme_file)
+				end
+			})
+		end
+	},
+	{
 		'sainnhe/sonokai',
 		lazy = false,
 		priority = 1000,
