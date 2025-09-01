@@ -42,6 +42,7 @@ return {
 			end
 
 			require("conform").setup({
+				-- log_level = vim.log.levels.DEBUG,
 				formatters_by_ft = formatters_by_ft,
 
 				formatters = {
@@ -53,7 +54,7 @@ return {
 						},
 					},
 					prettier = {
-						prepend_args = { "--end-of-line", "auto", "--no-bracket-spacing", "--print-width", "200", "--single-quote", "--tab-width", "2" },
+						prepend_args = { "--end-of-line", "auto", "--no-bracket-spacing", "--print-width", "80", "--single-quote", "--tab-width", "2" },
 						-- оборачиваем prettier в логирующую функцию
 						run = function(self, ...)
 							vim.notify("[FORMAT] Trying prettier")
@@ -74,12 +75,19 @@ return {
 			})
 
 			vim.keymap.set("n", "<space>lfr", function()
-				local bufnr       = vim.api.nvim_get_current_buf()
-				local ft          = vim.bo[bufnr].filetype
-				local cfg         = ft_config[ft]
+				local bufnr = vim.api.nvim_get_current_buf()
+				local ft    = vim.bo[bufnr].filetype
+				local cfg   = ft_config[ft]
 
-				-- подключаем conform только если есть конфиг для этого ft
-				-- и (если require_prettier == true) — есть конфиг prettier в проекте
+				if cfg and cfg.formatter == "lsp" then
+					vim.notify("[FORMAT] Using LSP formatter")
+					return vim.lsp.buf.format({
+						bufnr = bufnr,
+						async = false,
+						timeout_ms = 10000
+					})
+				end
+
 				local use_conform = cfg and (
 					not cfg.require_prettier or has_prettier_config(bufnr)
 				)
@@ -96,6 +104,67 @@ return {
 					vim.lsp.buf.format({ bufnr = bufnr, async = false, timeout_ms = 10000 })
 				end
 			end, { desc = "format" })
+			vim.api.nvim_create_user_command("Format",
+				function(args)
+					local range = nil
+					if args.count ~= -1 then
+						local end_line = vim.api.nvim_buf_get_lines(0, args.line2 - 1, args.line2, true)[1]
+						range = {
+							start = { args.line1 - 1, 0 },
+							["end"] = { args.line2 - 1, end_line and #end_line or 0 },
+						}
+					end
+					vim.notify("[FORMAT] fo")
+					require("conform").format(
+					{
+						formatters = { "biome" },
+						async = true,
+						lsp_format = "fallback",
+						range = range,
+					},
+						function(err)
+							if not err then
+								local mode = vim.api.nvim_get_mode().mode
+								if vim.startswith(mode, "v") then
+									vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n",
+										true)
+								end
+							end
+						end)
+				end, { range = true })
+			vim.keymap.set("", "<leader>fo", "<cmd>Format<CR>", { desc = "Format code" })
 		end
-	}
+	},
+	-- {
+	-- 	"mhartington/formatter.nvim",
+	-- 	config = function()
+	-- 		local defaults = require("formatter.defaults")
+	-- 		local util = require("formatter.util")
+	-- 		-- M.eslint_d = util.copyf(defaults.eslint_d)
+	-- 		require("formatter").setup({
+	-- 			filetype = {
+	-- 				typescriptreact = {
+	-- 					require("formatter.filetypes.typescriptreact").eslint
+	-- function()
+	-- 	return {
+	-- 		exe = "eslint_d",
+	-- 		args = {
+	-- 			"--stdin",
+	-- 			"--stdin-filename",
+	-- 			util.escape_path(util.get_current_buffer_file_path()),
+	-- 			"--fix-to-stdout",
+	-- 			"--config",
+	-- 			util.escape_path("~/.config/eslint-default/.eslintrc.js")
+	-- 		},
+	-- 		stdin = true,
+	-- 		try_node_modules = true,
+	-- 	}
+	-- end
+	-- 				}
+	-- 			}
+	-- 		})
+	--
+	-- 		vim.keymap.set("", "<leader>fo", "<cmd>Format<CR>", {})
+	-- 	end
+	-- }
 }

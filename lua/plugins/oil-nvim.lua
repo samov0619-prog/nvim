@@ -10,7 +10,7 @@ return {
 					["."] = { "actions.toggle_hidden", mode = "n" },
 				},
 				win_options = {
-					signcolumn = "auto",
+					signcolumn = "yes:1",
 				},
 			})
 

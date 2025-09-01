@@ -2,6 +2,10 @@ return {
 	{
 		"zk-org/zk-nvim",
 		config = function()
+			local os_name = vim.uv.os_uname().sysname
+			if os_name == "Darwin" then
+				return
+			end
 			require("zk").setup({
 				picker = "fzf_lua",
 				lsp = {

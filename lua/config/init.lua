@@ -47,6 +47,8 @@ vim.opt.showmode = false
 vim.o.laststatus = 3
 
 -- EDITOR --
+vim.opt.signcolumn = "yes:1"
+
 vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.numberwidth = 1
