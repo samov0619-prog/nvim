@@ -59,7 +59,12 @@ return {
 				},        -- ignore files matching these
 				negate_patterns = {}, -- negate ignore files matching these.
 			},
-			rag_service = { enabled = false },
+			rag_service = { -- RAG Service configuration
+				enabled = false,
+				host_mount = os.getenv("HOME"),
+				runner = "docker", -- Runner for the RAG service (can use docker or nix)
+				docker_extra_args = "",
+			},
 			selector = {
 				provider = "fzf_lua",
 			},
@@ -93,14 +98,13 @@ return {
 					endpoint = url,
 					allow_insecure = true,
 					api_key_name = "AI_RUN_TOKEN",
-					model = airun_model,
+					model = airun_autocomplete_model,
 					disable_tools = true,
 					extra = {
 						temperature = 0.2,
 						max_tokens = 250,
 					},
 				}
-				-- rag вырубил т.к. у меня nix докер не хочу
 				cfg.rag_service.enabled = false
 				cfg.rag_service.llm = {
 					provider = "airun",

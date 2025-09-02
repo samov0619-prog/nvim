@@ -7,6 +7,16 @@ return {
 			-- client.server_capabilities.documentFormattingProvider = false
 			-- client.server_capabilities.documentRangeFormattingProvider = false
 			-- end,
+			-- -@type Settings
+			settings = {
+				-- tsserver_format_options = {
+				-- convertTabsToSpaces = false,
+				-- semicolons = "insert",
+				-- },
+				-- tsserver_file_preferences = {
+				-- 	includeCompletionsForModuleExports = true,
+				-- }
+			},
 			filetypes = {
 				"javascript",
 				"javascriptreact",
@@ -17,20 +27,5 @@ return {
 				"vue",
 			},
 		},
-		config = function()
-			local config = {
-				-- -@type Settings
-				settings = {
-					-- tsserver_format_options = {
-						-- convertTabsToSpaces = false,
-						-- semicolons = "insert",
-					-- },
-					-- tsserver_file_preferences = {
-					-- 	includeCompletionsForModuleExports = true,
-					-- }
-				},
-			}
-			require("typescript-tools").setup(config)
-		end
 	}
 }

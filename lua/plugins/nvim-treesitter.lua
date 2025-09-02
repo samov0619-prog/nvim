@@ -31,6 +31,7 @@ return {
 				"sql",
 				"tsx",
 				"typescript",
+				"vue",
 				"vim",
 				"vimdoc",
 				-- markup

@@ -6,18 +6,7 @@ return {
 		dependencies = {
 			'L3MON4D3/LuaSnip',
 			"moyiz/blink-emoji.nvim",
-			{
-				"saghen/blink.compat",
-				optional = false,
-				version = "*",
-				config = function()
-					-- monkeypatch cmp.ConfirmBehavior for Avante
-					require("cmp").ConfirmBehavior = {
-						Insert = "insert",
-						Replace = "replace",
-					}
-				end,
-			},
+			'Kaiser-Yang/blink-cmp-avante',
 		},
 		---@module 'blink.cmp'
 		---@type blink.cmp.Config
@@ -68,8 +57,15 @@ return {
 			signature = { enabled = false },
 			snippets = { preset = 'luasnip' },
 			sources = {
-				default = { 'lsp', 'path', 'snippets', 'buffer', 'emoji', "avante_commands", "avante_mentions", "avante_files" },
+				default = { 'avante', 'lsp', 'path', 'snippets', 'buffer', 'emoji' },
 				providers = {
+					avante = {
+						module = 'blink-cmp-avante',
+						name = 'Avante',
+						opts = {
+							-- options for blink-cmp-avante
+						}
+					},
 					emoji = {
 						module = "blink-emoji",
 						name = "Emoji",
@@ -90,25 +86,7 @@ return {
 							return 0
 						end
 					},
-					avante_commands = {
-						name = "avante_commands",
-						module = "blink.compat.source",
-						score_offset = 90, -- show at a higher priority than lsp
-						opts = {},
-					},
-					avante_files = {
-						name = "avante_commands",
-						module = "blink.compat.source",
-						score_offset = 100, -- show at a higher priority than lsp
-						opts = {},
-					},
-					avante_mentions = {
-						name = "avante_mentions",
-						module = "blink.compat.source",
-						score_offset = 1000, -- show at a higher priority than lsp
-						opts = {},
-					},
-				},
+				}
 			},
 			cmdline = {
 				completion = {
