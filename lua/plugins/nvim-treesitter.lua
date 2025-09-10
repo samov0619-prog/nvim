@@ -182,18 +182,22 @@ return {
 					goto_next_start = {
 						["]m"] = { query = "@function.outer", desc = "next function start" },
 						["]i"] = { query = "@conditional.outer", desc = "next conditional start" },
+						["]e"] = { query = "@elem.outer", desc = "next element start" },
 					},
 					goto_next_end = {
 						["]M"] = { query = "@function.outer", desc = "next function end" },
 						["]I"] = { query = "@conditional.outer", desc = "next conditional end" },
+						["]E"] = { query = "@elem.outer", desc = "next element end" },
 					},
 					goto_previous_start = {
 						["[m"] = { query = "@function.outer", desc = "prev function start" },
 						["[i"] = { query = "@conditional.outer", desc = "prev conditional start" },
+						["[e"] = { query = "@elem.outer", desc = "prev element start" },
 					},
 					goto_previous_end = {
 						["[M"] = { query = "@function.outer", desc = "prev function end" },
 						["[I"] = { query = "@conditional.outer", desc = "prev conditional end" },
+						["[E"] = { query = "@elem.outer", desc = "prev element end" },
 					},
 				},
 				swap = {

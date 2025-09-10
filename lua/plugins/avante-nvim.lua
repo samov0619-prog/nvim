@@ -13,7 +13,7 @@ return {
 			and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false"
 			or "make",
 		event = "VeryLazy",
-		config = function(_, opts)
+		config = function()
 			local airun_model = "x5-airun-medium-coder-prod"
 			local airun_autocomplete_model = "x5-airun-small-coder-prod"
 			local ai_run_embedded_model = "x5-airun-multilingual-e5-large"

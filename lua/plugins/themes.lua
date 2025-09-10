@@ -106,6 +106,8 @@ return {
 						vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbol', { fg = '#d8d8d8' })
 						vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbolOff', { fg = '#ff9900' })
 						vim.api.nvim_set_hl(0, 'DiffChange', { bg='#cdd8fe' })
+						vim.api.nvim_set_hl(0, 'DiffAdd', { bg='#d5f0c1' })
+						vim.api.nvim_set_hl(0, 'DiffDelete', { bg='#ffb3bd' })
 						-- vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbolOff', { fg = '#ff9900' })
 						-- vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbolOff', { fg = '#ff9900' })
 					end
