@@ -37,7 +37,8 @@ return {
 						"marksman",
 						"lemminx",
 						"jdtls",
-						-- "ts_ls",
+						"ts_ls",
+						"vue_ls"
 					}
 				}
 			)
