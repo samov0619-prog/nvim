@@ -99,12 +99,17 @@ return {
 						".devenv",
 					}, -- ignore files matching these
 				},
+				selection = {
+					hint_display = "none",
+				},
 				selector = {
 					provider = "fzf_lua",
 				},
 			}
 
 			require("avante").setup(cfg)
+
+			vim.keymap.set("n", "<leader>aic", "<cmd>AvanteChatNew<CR>", {desc = "Avante Chat New"})
 		end,
 	},
 }
