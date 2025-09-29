@@ -6,8 +6,9 @@ return {
 			"tpope/vim-rhubarb",
 		},
 		config = function()
+			local patt = vim.fn.getenv("GLBPATT")
 			_G.CustomGitLabHandlerLua = function(opts)
-				if not opts.remote or not opts.remote:match("gitlab%.pla") then
+				if not opts.remote or not opts.remote:match(patt) then
 					return ""
 				end
 
