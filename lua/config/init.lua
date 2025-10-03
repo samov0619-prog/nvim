@@ -103,3 +103,12 @@ vim.api.nvim_create_autocmd('User', {
 		print('Startup in: ' .. stats.startuptime .. 'ms')
 	end
 })
+
+vim.api.nvim_create_autocmd("SourcePost", {
+	pattern = "*.vim",
+	callback = function(args)
+		if args.file:match("temp_sessions/.*") then
+			vim.g.session_file = args.file
+		end
+	end,
+})

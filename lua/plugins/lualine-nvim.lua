@@ -267,7 +267,7 @@ return {
 							-- Простая функция сессии - оставляем inline
 							function()
 								local status = vim.fn.ObsessionStatus()
-								return #status == 0 and '[]' or status
+								return #status == 0 and '[]' or string.format("[%s]", vim.fn.fnamemodify(vim.g.session_file, ":t:r"))
 							end,
 							color = function()
 								local status = vim.fn.ObsessionStatus()

@@ -11,7 +11,9 @@ return {
 			}
 			vscode_loader.lazy_load()
 			vscode_loader.lazy_load({ paths = "~/.config/nvim/my-snippets" })
-			ls.filetype_extend("tsdoc", {"typescript", "typescriptreact"})
+			ls.filetype_extend("typescript", {"tsdoc"})
+			ls.filetype_extend("typescriptreact", {"tsdoc"})
+			ls.filetype_extend("vue", {"typescriptreact"})
 		end,
 	}
 }
