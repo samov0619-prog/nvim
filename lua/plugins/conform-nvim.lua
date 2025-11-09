@@ -4,12 +4,12 @@ return {
 		config = function()
 			local util = require("conform.util")
 			local project_markers = {
-							"package.json",
-							"tsconfig.json",
-							"biome.json",
-							"biome.jsonc",
-							".git",
-						}
+				"package.json",
+				"tsconfig.json",
+				"biome.json",
+				"biome.jsonc",
+				".git",
+			}
 
 			local function find_biome_config(self, ctx)
 				-- Сначала ищем в корне проекта
@@ -24,7 +24,7 @@ return {
 					for _, config in ipairs(project_configs) do
 						local config_path = project_root .. "/" .. config
 						if vim.fn.filereadable(config_path) == 1 then
-                            print("config_path", config_path)
+							print("config_path", config_path)
 							return config_path
 						end
 					end
@@ -33,7 +33,7 @@ return {
 				-- Затем в домашней директории
 				local home_config = vim.fn.expand("~/biome.jsonc")
 				if vim.fn.filereadable(home_config) == 1 then
-                    print("home_config", home_config)
+					print("home_config", home_config)
 					return home_config
 				end
 
@@ -42,7 +42,8 @@ return {
 
 			local function create_biome_formatter()
 				return {
-					command = util.from_node_modules("biome") or vim.fn.expand("~/.local/share/nvim/mason/packages/biome/node_modules/@biomejs/biome/bin/biome"),
+					command = util.from_node_modules("biome") or
+					vim.fn.expand("~/.local/share/nvim/mason/packages/biome/node_modules/@biomejs/biome/bin/biome"),
 					args = function(self, ctx)
 						local config_path = find_biome_config(self, ctx)
 						local args = {
@@ -58,6 +59,7 @@ return {
 
 						return args
 					end,
+					stdin = true,
 					cwd = function(self, ctx)
 						-- Пытаемся найти корень проекта
 						return util.root_file(project_markers)(self, ctx) or vim.fn.getcwd()
@@ -98,35 +100,23 @@ return {
 				}
 			})
 
-			vim.api.nvim_create_user_command("Format",
-				function(args)
-					local range = nil
-					if args.count ~= -1 then
-						local end_line = vim.api.nvim_buf_get_lines(0, args.line2 - 1, args.line2, true)[1]
-						range = {
-							start = { args.line1 - 1, 0 },
-							["end"] = { args.line2 - 1, end_line and #end_line or 0 },
-						}
-					end
-
-					require("conform").format(
-						{
-							async = true,
-							range = range,
-							timeout_ms = 4000,
-							lsp_format = "fallback",
-						},
-						function(err, _)
-							if not err then
-								local mode = vim.api.nvim_get_mode().mode
-								if vim.startswith(mode, "v") then
-									vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n",
-										true)
-								end
+			vim.keymap.set("", "<leader>fo", function()
+				require("conform").format(
+					{
+						async = true,
+						timeout_ms = 4000,
+						lsp_format = "fallback",
+					},
+					function(err, _)
+						if not err then
+							local mode = vim.api.nvim_get_mode().mode
+							if vim.startswith(mode, "v") then
+								vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n",
+									true)
 							end
-						end)
-				end, { range = true })
-			vim.keymap.set("", "<leader>fo", "<cmd>Format<CR>", { desc = "Biome format" })
+						end
+					end)
+			end, { desc = "Format" })
 		end
 	},
 }

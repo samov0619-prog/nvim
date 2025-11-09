@@ -52,8 +52,8 @@ return {
 				['<C-space>'] = { 'show', 'show_documentation', 'hide_documentation', 'fallback' },
 				['<CR>'] = { 'accept', 'fallback' },
 
-				['C-n'] = { 'snippet_forward', 'fallback' },
-				['C-p'] = { 'snippet_backward', 'fallback' },
+				['C-n'] = { 'select_next', 'snippet_forward', 'fallback' },
+				['C-p'] = { 'select_prev', 'snippet_backward', 'fallback' },
 			},
 			signature = { enabled = false },
 			snippets = { preset = 'luasnip' },
