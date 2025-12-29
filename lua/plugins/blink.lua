@@ -13,13 +13,16 @@ return {
 		opts = {
 			completion = {
 				ghost_text = {
-					-- enabled = true,
+					enabled = true,
+					show_with_menu = false,
 				},
 				list = {
 					selection = { preselect = true, auto_insert = false }
 				},
 				menu = {
 					auto_show = false,
+					-- you may want to set the following options
+					-- completion.menu.auto_show = false -- only show menu on manual <C-space>
 					draw = {
 						components = {
 							label_description = {

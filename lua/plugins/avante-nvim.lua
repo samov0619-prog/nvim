@@ -14,12 +14,12 @@ return {
 			or "make",
 		event = "VeryLazy",
 		config = function()
-			local airun_model = "x5-airun-medium-coder-prod"
-			local airun_autocomplete_model = "x5-airun-small-coder-prod"
-			local ai_run_embedded_model = "x5-airun-multilingual-e5-large"
-			local url = vim.fn.getenv("AI_RUN")
+			local airun_model = "x5/x5-airun-medium-coder-prod"
+			local airun_autocomplete_model = "x5/x5-airun-small-coder-prod"
+			local ai_run_embedded_model = "x5/x5-airun-multilingual-e5-large"
+			local url = vim.fn.getenv("AI_RUN_2")
 
-			-- конфиг иимменно airun vim.g из глобального конфига
+			-- конфиг именно airun vim.g из глобального конфига
 
 			---@module 'avante'
 			---@type avante.Config

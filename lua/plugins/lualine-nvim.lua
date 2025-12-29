@@ -135,7 +135,7 @@ return {
 			'tpope/vim-obsession'
 		},
 		config = function()
-			require('lualine').setup({
+			local config = {
 				options = {
 					always_show_tabline = false,
 				},
@@ -238,9 +238,7 @@ return {
 								end
 							end,
 							separator = '',
-							color = function()
-								return vim.bo.modified and { fg = "#e61616" } or nil
-							end
+							color =  function() return vim.bo.modified and 'WarningMsg' end
 						},
 						{
 							git.get_stage_info,
@@ -267,7 +265,8 @@ return {
 							-- Простая функция сессии - оставляем inline
 							function()
 								local status = vim.fn.ObsessionStatus()
-								return #status == 0 and '[]' or string.format("[%s]", vim.fn.fnamemodify(vim.g.session_file, ":t:r"))
+								return #status == 0 and '[]' or
+								string.format("[%s]", vim.fn.fnamemodify(vim.g.session_file, ":t:r"))
 							end,
 							color = function()
 								local status = vim.fn.ObsessionStatus()
@@ -294,7 +293,9 @@ return {
 						}
 					}
 				}
-			})
+			}
+
+			require('lualine').setup(config)
 		end
 	}
 }

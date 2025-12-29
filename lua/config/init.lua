@@ -50,7 +50,7 @@ vim.o.laststatus = 3
 vim.opt.signcolumn = "yes:1"
 
 vim.opt.number = true
-vim.opt.relativenumber = true
+-- vim.opt.relativenumber = true
 vim.opt.numberwidth = 1
 
 vim.opt.tabstop = 4
