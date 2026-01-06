@@ -225,6 +225,11 @@ return {
 				winbar = {
 					lualine_a = {
 						{
+							function()
+								return vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+							end
+						},
+						{
 							-- Функция filename с git интеграцией - использует git модуль
 							function()
 								local git_result = git.get_aware_filename()
@@ -238,7 +243,7 @@ return {
 								end
 							end,
 							separator = '',
-							color =  function() return vim.bo.modified and 'WarningMsg' end
+							color = function() return vim.bo.modified and 'WarningMsg' end
 						},
 						{
 							git.get_stage_info,
@@ -266,7 +271,7 @@ return {
 							function()
 								local status = vim.fn.ObsessionStatus()
 								return #status == 0 and '[]' or
-								string.format("[%s]", vim.fn.fnamemodify(vim.g.session_file, ":t:r"))
+									string.format("[%s]", vim.fn.fnamemodify(vim.g.session_file, ":t:r"))
 							end,
 							color = function()
 								local status = vim.fn.ObsessionStatus()
@@ -294,6 +299,20 @@ return {
 					}
 				}
 			}
+
+			local ok, Tab = pcall(require, 'lualine.components.tabs.tab')
+			if not ok then return end
+
+			local mt = getmetatable(Tab)
+			local orig_label = mt and mt.label or Tab.label
+
+			Tab.label = function(self)
+				if self.filetype == 'oil' and vim.startswith(self.file, 'oil://') then
+					local path = self.file:gsub('^oil://', '')
+					return vim.fn.fnamemodify(path, ':~')
+				end
+				return orig_label(self)
+			end
 
 			require('lualine').setup(config)
 		end

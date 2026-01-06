@@ -4,6 +4,10 @@ local described = M.described
 
 local os_name = vim.uv.os_uname().sysname
 
+-- TAB PAGES --
+vim.keymap.set('n', '<leader>tn', '<cmd>tabnew<CR>', described(opts, "open new tab page"))
+vim.keymap.set('n', '<leader>tc', '<cmd>tabclose<CR>', described(opts, "close current tab page"))
+
 -- WINDOWS NAVIGATION --
 if os_name == "Darwin" then
 	-- (i, t)
