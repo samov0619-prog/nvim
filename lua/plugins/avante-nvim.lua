@@ -1,6 +1,7 @@
 return {
 	{
 		"yetone/avante.nvim",
+    enabled = false;
 		dependencies = {
 			"nvim-treesitter/nvim-treesitter",
 			"nvim-lua/plenary.nvim",

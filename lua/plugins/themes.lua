@@ -91,7 +91,7 @@ return {
 			-- 	fg = '#000000',
 			-- })
 
-			vim.g.sonokai_transparent_background = 1
+			-- vim.g.sonokai_transparent_background = 1
 
 			vim.api.nvim_create_autocmd("ColorScheme", {
 				pattern = "*",

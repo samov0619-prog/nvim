@@ -11,7 +11,6 @@ return {
           default_explorer = true,
           mappings = {
             ---@param self Finder
-            ["-"] = "Goto_parent",
             ["<C-h>"] = function(self)
               local current_node = self:cursor_node_entry()
               local parent_ref_id = self.files:find_parent(current_node.ref_id)
@@ -35,6 +34,13 @@ return {
               self:exec_action("n_goto_cwd")
             end,
           },
+          win = {
+            win_opts = {
+              cursorline = true,
+              number = true,
+              signcolumn = "yes",
+            },
+          }
         },
       }
     },
