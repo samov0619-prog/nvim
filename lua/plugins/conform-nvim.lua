@@ -1,6 +1,7 @@
 return {
 	{
 		'stevearc/conform.nvim',
+    -- enabled = false,
 		config = function()
 			local util = require("conform.util")
 			local project_markers = {
@@ -80,7 +81,7 @@ return {
 					yaml            = { "biome" },
 
 					css             = { "stylelint" },
-					scss            = { "stylelint" },
+					scss            = { "prettier" },
 					markdown        = { "mdformat" },
 
 					sh              = { "beautysh" },

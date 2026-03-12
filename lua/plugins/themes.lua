@@ -27,32 +27,36 @@ return {
 			local os_theme_file = vim.fn.expand("~/.config/theme/current_theme")
 			local theme = (vim.fn.filereadable(os_theme_file) == 1 and vim.fn.readfile(os_theme_file)[1]) or "dark"
 
-			local light = {
-				black = { "#181819", "255" },
-				bg_dim = { "#f8f8f8", "254" },
-				bg0 = { "#ffffff", "231" },
-				bg1 = { "#f0f0f0", "255" },
-				bg2 = { "#e8e8e8", "255" },
-				bg3 = { "#e0e0e0", "254" },
-				bg4 = { "#d8d8d8", "254" },
-				bg_red = { "#ff6077", "203" },
-				diff_red = { "#ffebee", "203" },
-				bg_green = { "#a7df78", "107" },
-				diff_green = { "#d9ffcf", "107" },
-				bg_blue = { "#7091ff", "110" },
-				diff_blue = { "#e6fdff", "110" },
-				diff_yellow = { "#ffffdc", "179" },
-				fg = { "#303030", "236" },
-				red = { "#e61616", "203" },
-				orange = { "#dd8500", "215" },
-				yellow = { "#00b0b0", "179" },
-				green = { "#009f00", "107" },
-				blue = { "#4255ff", "110" },
-				purple = { "#c900c9", "176" },
-				grey = { "#7f8490", "246" },
-				grey_dim = { "#595f6f", "240" },
-				none = { "NONE", "NONE" },
-			}
+      local light = {
+        black        = { "#181819", "255" },
+        bg_dim       = { "#f8f8f8", "254" },
+        bg0          = { "#ffffff", "231" },
+        bg1          = { "#f0f0f0", "255" },
+        bg2          = { "#e8e8e8", "255" },
+        bg3          = { "#e0e0e0", "254" },
+        bg4          = { "#d8d8d8", "254" },
+        -- приглушённые фоны (аналог тёмных bg_* в оригинале)
+        bg_red       = { "#ffebee", "203" },
+        bg_yellow    = { "#ffffdc", "179" },
+        bg_green     = { "#d9ffcf", "107" },
+        bg_blue      = { "#e6fdff", "110" },
+        bg_purple    = { "#f3eeff",  "54" },  -- восстановлен по аналогии
+        -- насыщенные заливки (аналог filled_* в оригинале)
+        filled_red   = { "#ff6077", "203" },
+        filled_green = { "#a7df78", "107" },
+        filled_blue  = { "#7091ff", "110" },
+        -- синтаксис (не трогаем, гамма удачная)
+        fg           = { "#303030", "236" },
+        red          = { "#e61616", "203" },
+        orange       = { "#dd8500", "215" },
+        yellow       = { "#00b0b0", "179" },
+        green        = { "#009f00", "107" },
+        blue         = { "#4255ff", "110" },
+        purple       = { "#c900c9", "176" },
+        grey         = { "#7f8490", "246" },
+        grey_dim     = { "#595f6f", "240" },
+        none         = { "NONE",    "NONE" },
+      }
 
 			local toggle = function(value)
 				if value == "dark" then
@@ -91,7 +95,8 @@ return {
 				fg = '#000000',
 			})
 
-			vim.g.sonokai_transparent_background = 1
+      vim.api.nvim_set_hl(0, 'DiffText', { bg = '#4e432f' })
+			-- vim.g.sonokai_transparent_background = 1
 
 			vim.api.nvim_create_autocmd("ColorScheme", {
 				pattern = "*",
@@ -104,14 +109,11 @@ return {
 					if theme == "dark" then
 						vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbol', { fg = '#595f6f' })
 						vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbolOff', { fg = '#ff9900' })
+            vim.api.nvim_set_hl(0, 'DiffText', { bg = '#4e432f' })
 					else
 						vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbol', { fg = '#d8d8d8' })
 						vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbolOff', { fg = '#ff9900' })
-						vim.api.nvim_set_hl(0, 'DiffChange', { bg = '#cdd8fe' })
-						vim.api.nvim_set_hl(0, 'DiffAdd', { bg = '#d5f0c1' })
-						vim.api.nvim_set_hl(0, 'DiffDelete', { bg = '#ffb3bd' })
-						-- vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbolOff', { fg = '#ff9900' })
-						-- vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbolOff', { fg = '#ff9900' })
+            vim.api.nvim_set_hl(0, 'DiffText', { bg = '#ffffdc' })
 					end
 				end
 				,

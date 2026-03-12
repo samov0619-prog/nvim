@@ -19,7 +19,7 @@ return {
 			vim.lsp.config("*",
 				{
 					on_attach = function(client, bufnr)
-						client.server_capabilities.semanticTokensProvider = nil
+						-- client.server_capabilities.semanticTokensProvider = nil
 
 
 						vim.keymap.set(
@@ -94,26 +94,59 @@ return {
 				}
 			})
 
-			vim.lsp.config("ts_ls", {
-				init_options = {
-					plugins = {
-						{
-							name = "@vue/typescript-plugin",
-							location = vim.fn.stdpath('data') .. "/mason/packages/vue-language-server/node_modules/@vue/language-server",
-							languages = { "typescript", "vue" }
-						},
-					},
-				},
-				filetypes = {
-					"javascript",
-					"javascriptreact",
-					"javascript.jsx",
-					"typescript",
-					"typescriptreact",
-					"typescript.tsx",
-					"vue",
-				},
-			})
+			-- vim.lsp.config("ts_ls", {
+			-- 	init_options = {
+			-- 		plugins = {
+			-- 			{
+			-- 				name = "@vue/typescript-plugin",
+			-- 				location = vim.fn.stdpath('data') .. "/mason/packages/vue-language-server/node_modules/@vue/language-server",
+			-- 				languages = { "typescript", "vue" }
+			-- 			},
+			-- 		},
+			-- 	},
+			-- 	filetypes = {
+			-- 		-- "javascript",
+			-- 		-- "javascriptreact",
+			-- 		-- "javascript.jsx",
+			-- 		-- "typescript",
+			-- 		-- "typescriptreact",
+			-- 		-- "typescript.tsx",
+			-- 		"vue",
+			-- 	},
+			-- })
+
+
+      local vue_language_server_path = vim.fn.stdpath('data') .. "/mason/packages/vue-language-server/node_modules/@vue/language-server"
+      local tsserver_filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' }
+      local vue_plugin = {
+        name = '@vue/typescript-plugin',
+        location = vue_language_server_path,
+        languages = { 'vue' },
+        configNamespace = 'typescript',
+      }
+      local vtsls_config = {
+        settings = {
+          vtsls = {
+            tsserver = {
+              globalPlugins = {
+                vue_plugin,
+              },
+            },
+          },
+        },
+        on_attach = function(client)
+          local existing_capabilities = client.server_capabilities
+          if vim.bo.filetype == 'vue' then
+            existing_capabilities.semanticTokensProvider.full = false
+          else
+            existing_capabilities.semanticTokensProvider.full = true
+          end
+        end,
+        filetypes = tsserver_filetypes,
+      }
+      local vue_ls_config = {}
+      vim.lsp.config('vtsls', vtsls_config)
+      vim.lsp.config('vue_ls', vue_ls_config)
 
 			vim.lsp.config("lua_ls", {
 				root_markers = {

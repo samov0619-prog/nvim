@@ -1,6 +1,7 @@
 return {
 	{
 		"mfussenegger/nvim-dap",
+    -- enabled= false,
 		dependencies = {
 			{ "igorlfs/nvim-dap-view", opts = {} }
 		},

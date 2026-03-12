@@ -1,8 +1,15 @@
 local uv = vim.uv
 
----Strips "oil://" prefix from a string if present.
+---Strips "oil://" or "fyler://" prefix from a string if present.
 ---@param path string
 ---@return string
+local function strip_fyler_prefix(path)
+	local prefix = "fyler://"
+	if vim.startswith(path, prefix) then
+		return path:sub(#prefix + 1)
+	end
+	return path
+end
 local function strip_oil_prefix(path)
 	local prefix = "oil://"
 	if vim.startswith(path, prefix) then
@@ -19,6 +26,7 @@ return {
 			local fzf = require("fzf-lua")
 			local fzf_utils = require "fzf-lua.utils"
 			local fzf_path = require "fzf-lua.path"
+			local fyler = require("fyler")
 
 			local config = {
 				git = {
@@ -47,7 +55,9 @@ return {
 					actions = {
 						["default"] = function(selected)
 							local path = selected[1]:match("[^\t]+$") or selected[1]
-							require("oil").open(path)
+							path = strip_fyler_prefix(path)
+							-- Open using fyler API
+							fyler.open({ dir = path })
 						end,
 						["`"] = function(selected, opts)
 							local cwd = selected[1]:match("[^\t]+$") or selected[1]
@@ -56,10 +66,11 @@ return {
 							end
 							local git_root = opts.git_root and fzf_path.git_root({ cwd = cwd }, true) or nil
 							cwd = git_root or cwd
+							cwd = strip_fyler_prefix(cwd)
 							if uv.fs_stat(cwd) then
 								vim.cmd("cd " .. cwd)
 								fzf_utils.io_system({ "zoxide", "add", "--", cwd })
-								require("oil").open(cwd)
+								fyler.open({ dir = cwd })
 							end
 						end,
 						["~"] = function(selected, opts)
@@ -69,10 +80,11 @@ return {
 							end
 							local git_root = opts.git_root and fzf_path.git_root({ cwd = cwd }, true) or nil
 							cwd = git_root or cwd
+							cwd = strip_fyler_prefix(cwd)
 							if uv.fs_stat(cwd) then
 								vim.cmd("tcd " .. cwd)
 								fzf_utils.io_system({ "zoxide", "add", "--", cwd })
-								require("oil").open(cwd)
+								fyler.open({ dir = cwd })
 							end
 						end,
 					},
@@ -102,14 +114,14 @@ return {
 
 			vim.keymap.set("n", "<leader>fF", function()
 				fzf.files {
-					cwd = strip_oil_prefix(vim.fn.expand "%:p:h"),
+					cwd = strip_fyler_prefix(vim.fn.expand "%:p:h"),
 				}
 			end, { desc = "find files in current dir" })
 
 			vim.keymap.set("v", "<leader>fF", function()
 				local input = fzf_utils.get_visual_selection()
 				fzf.files {
-					cwd = strip_oil_prefix(vim.fn.expand "%:p:h"),
+					cwd = strip_fyler_prefix(vim.fn.expand "%:p:h"),
 					fzf_opts = {
 						['--query'] = input,
 					}
@@ -128,13 +140,13 @@ return {
 
 			vim.keymap.set("n", "<leader>fG", function()
 				fzf.live_grep {
-					cwd = strip_oil_prefix(vim.fn.expand "%:p:h"),
+					cwd = strip_fyler_prefix(vim.fn.expand "%:p:h"),
 				}
 			end, { desc = "find files in current dir" })
 
 			vim.keymap.set("v", "<leader>fG", function()
 				fzf.live_grep {
-					cwd = strip_oil_prefix(vim.fn.expand "%:p:h"),
+					cwd = strip_fyler_prefix(vim.fn.expand "%:p:h"),
 					search = fzf_utils.get_visual_selection(),
 				}
 			end, { desc = "find files in current dir for selection" })
@@ -200,7 +212,7 @@ return {
 			---Adds directory to zoxide asynchronously
 			---@param dir string
 			local function add_to_zoxide(dir)
-				local clean_dir = strip_oil_prefix(dir)
+				local clean_dir = strip_fyler_prefix(dir)
 				vim.fn.jobstart({
 					"zoxide", "add", clean_dir
 				}, {

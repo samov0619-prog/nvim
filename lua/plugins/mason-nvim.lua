@@ -28,7 +28,7 @@ return {
 						"cssls",
 						"css_variables",
 						"cssmodules_ls",
-						-- "eslint",
+						"eslint",
 						"html",
 						"jsonls",
 						"hyprls",
@@ -37,7 +37,8 @@ return {
 						"marksman",
 						"lemminx",
 						"jdtls",
-						"ts_ls",
+						-- "ts_ls",
+						"vtsls",
 						"vue_ls"
 					}
 				}

@@ -52,8 +52,8 @@ function git.get_info()
 		local stage_names = {
 			['0'] = 'result',
 			['1'] = '$orig',
-			['2'] = 'HEAD',
-			['3'] = 'MERGE_HEAD'
+			['2'] = 'OUR_HEAD',
+			['3'] = 'THEIR_HEAD'
 		}
 		info.stage = stage_names[stage]
 		info.sha = nil

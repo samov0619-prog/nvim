@@ -14,26 +14,27 @@ return {
 			or "make",
 		event = "VeryLazy",
 		config = function()
-			local airun_model = "x5/x5-airun-medium-coder-prod"
+			-- local airun_model = "x5/x5-airun-medium-coder-prod"
+			local airun_model = "copilot-code-large"
 			local airun_autocomplete_model = "x5/x5-airun-small-coder-prod"
 			local ai_run_embedded_model = "x5/x5-airun-multilingual-e5-large"
-			local url = vim.fn.getenv("AI_RUN_2")
+			local url = vim.fn.getenv("AI_RUN_3")
 
 			-- конфиг именно airun vim.g из глобального конфига
 
 			---@module 'avante'
 			---@type avante.Config
 			local cfg = {
-				provider = "airun",
+				provider = "openai",
 				mode = "legacy",
 				auto_suggestions_provider = "airun_autocomplete",
 				providers = {
-					airun = {
+					openai = {
 						__inherited_from = "openai",
 						endpoint = url,
 						api_key_name = "AI_RUN_TOKEN",
 						model = airun_model,
-						disable_tools = true,
+						-- disable_tools = true,
 						allow_insecure = true,
 						extra = {
 							temperature = 0.7,
