@@ -10,13 +10,13 @@ local function strip_fyler_prefix(path)
 	end
 	return path
 end
-local function strip_oil_prefix(path)
-	local prefix = "oil://"
-	if vim.startswith(path, prefix) then
-		return path:sub(#prefix + 1)
-	end
-	return path
-end
+-- local function strip_oil_prefix(path)
+-- 	local prefix = "oil://"
+-- 	if vim.startswith(path, prefix) then
+-- 		return path:sub(#prefix + 1)
+-- 	end
+-- 	return path
+-- end
 
 return {
 	{

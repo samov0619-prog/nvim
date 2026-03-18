@@ -100,7 +100,7 @@ vim.api.nvim_create_autocmd('User', {
 	pattern = 'LazyVimStarted',
 	callback = function()
 		local stats = require('lazy').stats()
-		print('Startup in: ' .. stats.startuptime .. 'ms')
+		print('Startup in: ' .. stats.startuptime .. ' ms')
 	end
 })
 
