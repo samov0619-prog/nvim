@@ -112,3 +112,14 @@ vim.api.nvim_create_autocmd("SourcePost", {
 		end
 	end,
 })
+
+vim.opt.diffopt = {
+  "internal",
+  "indent-heuristic",
+  "algorithm:histogram",
+  "linematch:60",       -- аккуратное выравнивание (можно 40 если медлит)
+  "closeoff",
+  "filler",
+  -- "inline:char"        -- или "inline:word" если хочешь слово-ориентированную подсветку
+  -- "iwhiteeol"           -- игнор пробелов в конце строки (по желанию)
+}
