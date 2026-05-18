@@ -95,6 +95,14 @@ return {
 
 			fzf.register_ui_select()
 
+
+      vim.keymap.set('n', '<leader>fA', function()
+        require('fzf-lua').live_grep({
+          prompt = "Search ALL (no-ignore)> ",
+          rg_opts = "--column --line-number --no-heading --color=always --smart-case --no-ignore",
+        })
+      end)
+
 			vim.keymap.set("n", "<leader>fr", function()
 				fzf.resume()
 			end, { desc = "find resume" })
