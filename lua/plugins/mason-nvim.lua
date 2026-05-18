@@ -29,6 +29,7 @@ return {
 						"css_variables",
 						"cssmodules_ls",
 						"eslint",
+            "gopls",
 						"html",
 						"jsonls",
 						"hyprls",

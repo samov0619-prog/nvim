@@ -181,6 +181,7 @@ return {
 		'ThePrimeagen/git-worktree.nvim',
 		dependencies = {
 			"ibhagwan/fzf-lua",
+			"nvim-lua/plenary.nvim",
 		},
 		config = function()
 			vim.keymap.set("n", "<leader>gw", M.git_worktrees,

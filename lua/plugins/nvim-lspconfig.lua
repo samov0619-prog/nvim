@@ -183,6 +183,22 @@ return {
 				},
 			})
 
+			vim.lsp.config("nixd", {
+				settings = {
+					nixd = {
+						formatting = {
+							command = { "nixfmt" }
+						}
+					},
+				},
+			})
+
+			vim.lsp.enable({
+				"nixd",
+			})
+
+
+
 			vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter' }, {
 				group = vim.api.nvim_create_augroup("HyprlangLsp", { clear = true }),
 				pattern = { "*.hl", "hypr*.conf" },
