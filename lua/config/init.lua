@@ -63,6 +63,8 @@ vim.opt.listchars = "eol:¬,tab:>·,trail:~,extends:>,precedes:<"
 
 vim.opt.cursorline = true
 
+vim.opt.spell = true
+
 -- Comment in gitconfig
 vim.api.nvim_create_autocmd("FileType", {
 	pattern = "gitconfig",
@@ -91,6 +93,7 @@ vim.diagnostic.config({
 	severity_sort = false, -- Не сортировать диагностику по уровню серьёзности
 })
 
+--AUTOCMDS--
 vim.api.nvim_create_user_command('Restart', function()
 	vim.fn.system('hyprctl dispatch exec "kitty nvim" &')
 	vim.cmd('qa!')

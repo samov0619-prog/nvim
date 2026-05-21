@@ -67,7 +67,7 @@ return {
 				['C-p'] = { 'select_prev', 'snippet_backward', 'fallback' },
 			},
 			sources = {
-				default = { 'avante', 'lsp', 'path', 'snippets', 'buffer', 'emoji' },
+				default = { 'avante', 'lsp', 'path', 'snippets', 'buffer', 'emoji', 'spell' },
 				providers = {
 					avante = {
 						module = 'blink-cmp-avante',
@@ -96,6 +96,16 @@ return {
 							return 0
 						end
 					},
+          spell = {
+            name = "Spell",
+            module = "blink.cmp.sources.spell",
+            opts = {
+              keep_all_entries = false,
+              enable_in_context = function()
+                return vim.o.spell
+              end,
+            },
+          },
 				}
 			},
 			cmdline = {
