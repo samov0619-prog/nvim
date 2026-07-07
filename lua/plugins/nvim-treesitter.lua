@@ -222,7 +222,7 @@ return {
 		},
 		-- build = ":TSUpdateSync",
 		config = function(_, opts)
-			require("nvim-treesitter.configs").setup(opts)
+			require("nvim-treesitter").setup(opts)
 			vim.treesitter.language.register("bash", "zsh")
 			vim.keymap.set("n", "<leader>mir", "<cmd>CellularAutomaton make_it_rain<CR>")
 		end

@@ -64,6 +64,16 @@ vim.opt.listchars = "eol:¬,tab:>·,trail:~,extends:>,precedes:<"
 vim.opt.cursorline = true
 
 vim.opt.spell = true
+vim.opt.spelllang    = { "en", "ru", "dev" }
+vim.opt.spellfile    = vim.fn.stdpath("config") .. "/spell/en.utf-8.add"  -- личные zg-слова
+vim.opt.spelloptions = "camel"   -- FileManager1 -> File + Manager, проверяются по отдельности
+vim.api.nvim_create_autocmd({ "BufWinEnter", "TermOpen" }, {
+  callback = function(ev)
+    if vim.bo[ev.buf].buftype ~= "" then      -- всё, что не обычный файл
+      vim.opt_local.spell = false
+    end
+  end,
+})
 
 -- Comment in gitconfig
 vim.api.nvim_create_autocmd("FileType", {

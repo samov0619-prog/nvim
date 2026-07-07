@@ -57,7 +57,7 @@ return {
 							local path = selected[1]:match("[^\t]+$") or selected[1]
 							path = strip_fyler_prefix(path)
 							-- Open using fyler API
-							fyler.open({ dir = path })
+							fyler.open({ root_path = path })
 						end,
 						["`"] = function(selected, opts)
 							local cwd = selected[1]:match("[^\t]+$") or selected[1]
@@ -70,7 +70,7 @@ return {
 							if uv.fs_stat(cwd) then
 								vim.cmd("cd " .. cwd)
 								fzf_utils.io_system({ "zoxide", "add", "--", cwd })
-								fyler.open({ dir = cwd })
+								fyler.open({ root_path = cwd })
 							end
 						end,
 						["~"] = function(selected, opts)
@@ -84,7 +84,7 @@ return {
 							if uv.fs_stat(cwd) then
 								vim.cmd("tcd " .. cwd)
 								fzf_utils.io_system({ "zoxide", "add", "--", cwd })
-								fyler.open({ dir = cwd })
+								fyler.open({ root_path = cwd })
 							end
 						end,
 					},

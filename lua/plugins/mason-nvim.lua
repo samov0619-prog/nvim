@@ -3,7 +3,7 @@ return {
 		"mason-org/mason.nvim",
 		event = "VeryLazy",
 		-- for nixos
-		enabled = false,
+		-- enabled = false,
 		dependencies = {
 			"mason-org/mason-lspconfig.nvim",
 		},
@@ -49,7 +49,7 @@ return {
 	{
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
 		-- for nixos
-		enabled = false,
+		-- enabled = false,
 		config = function()
 			require('mason-tool-installer').setup {
 				ensure_installed = {
