@@ -41,6 +41,7 @@ return {
 						"jdtls",
 						-- "ts_ls",
 						-- "vue_ls"
+            "intelephense",
 					}
 				}
 			)
