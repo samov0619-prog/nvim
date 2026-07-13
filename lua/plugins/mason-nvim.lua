@@ -56,7 +56,7 @@ return {
 				ensure_installed = {
 					-- "prettier",
 					-- "eslint_d",
-					-- "biome",
+					"biome",
 					-- "stylelint",
           "beautysh",
 					"shfmt",
