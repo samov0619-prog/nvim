@@ -1,230 +1,112 @@
--- paste to non nix in config
-local no_nix_ensure_installed = {
-	-- languages
-	"bash",
-	-- "c",
-	-- "clojure",
-	-- "fennel",
-	"comment",
-	"go",
-	"gomod",
-	"gosum",
-	-- "groovy",
-	"java",
-	"javascript",
-	-- "kotlin",
-	"lua",
-	-- "proto",
-	"python",
-	-- "rust",
-	"scheme",
-	"sql",
-	"tsx",
-	"typescript",
-	"vue",
-	"vim",
-	"vimdoc",
-	-- markup
-	"css",
-	"html",
-	"markdown",
-	"markdown_inline",
-	"mermaid",
-	"xml",
-	"asm",
-	-- config
-	"dot",
-	"toml",
-	"yaml",
-	-- data
-	"csv",
-	"json",
-	"json5",
-	-- utility
-	"diff",
-	"ssh_config",
-	"printf",
-	"disassembly",
-	"dockerfile",
-	"git_config",
-	"git_rebase",
-	"gitcommit",
-	"gitignore",
-	"http",
-	"query",
+local ensure_installed = {
+  "bash", "comment", "go", "gomod", "gosum", "java", "javascript", "lua",
+  "python", "scheme", "sql", "tsx", "typescript", "vue", "vim", "vimdoc",
+  "css", "scss", "html", "markdown", "markdown_inline", "mermaid", "xml", "asm",
+  "dot", "toml", "yaml", "csv", "json", "json5", "diff", "ssh_config", "printf",
+  "disassembly", "dockerfile", "git_config", "git_rebase", "gitcommit",
+  "gitignore", "http", "query",
+  -- добавил под твой текущий стек:
+  "php", "phpdoc", "nix",
 }
+
 return {
-	{
-		"nvim-treesitter/nvim-treesitter",
-		dependencies = {
-			"nvim-treesitter/nvim-treesitter-textobjects",
-			"eandrju/cellular-automaton.nvim"
-		},
-		---@type TSConfig
-		opts = {
-			auto_install = false,
-			-- for nixos
-			ensure_installed = {},
-			highlight = {
-				enable = true,
-				disable = function(lang, buf)
-					local max_filesize = 500 * 1024 -- 100 KB
-					local ok, stats = pcall(
-						vim.loop.fs_stat,
-						vim.api.nvim_buf_get_name(buf)
-					)
-					if ok and stats and stats.size > max_filesize then
-						return true
-					end
-				end,
-				additional_vim_regex_highlighting = false,
-			},
-			ignore_install = {},
-			incremental_selection = {
-				enable = true,
-				keymaps = {
-					init_selection = "<C-space>",
-					node_incremental = "<C-space>",
-					scope_incremental = false,
-					node_decremental = "<C-backspace>",
-				},
-			},
-			modules = {
-			},
-			-- playground = {
-			-- 	enable = true,
-			-- 	updatetime = 25,
-			-- 	persist_queries = false,
-			-- },
-			textobjects = {
-				select = {
-					enable = true,
-					lookahead = true,
-					keymaps = {
-						["a="] = {
-							query = "@assignment.outer",
-							desc = "select outer part of an assignment",
-						},
-						["i="] = {
-							query = "@assignment.inner",
-							desc = "select inner part of an assignment",
-						},
-						["r="] = {
-							query = "@assignment.rhs",
-							desc = "select right hand side of an assignment",
-						},
+  {
+    "nvim-treesitter/nvim-treesitter",
+    branch = "main",
+    build = ":TSUpdate",
+    dependencies = {
+      { "nvim-treesitter/nvim-treesitter-textobjects", branch = "main" },
+      "eandrju/cellular-automaton.nvim",
+    },
+    config = function()
+      require("nvim-treesitter").setup() -- на main опции не передаём
 
-						["aa"] = {
-							query = "@parameter.outer",
-							desc = "select outer part of a parameter/argument",
-						},
-						["ia"] = {
-							query = "@parameter.inner",
-							desc = "select inner part of a parameter/argument",
-						},
+      -- 1) установка парсеров (замена ensure_installed)
+      local installed = require("nvim-treesitter.config").get_installed()
+      local to_install = vim.iter(ensure_installed)
+          :filter(function(p) return not vim.tbl_contains(installed, p) end)
+          :totable()
+      if #to_install > 0 then
+        require("nvim-treesitter").install(to_install)
+      end
 
-						--[[ ["ai"] = {
-								query = "@conditional.outer",
-								desc = "select outer part of a conditional",
-							},
-							["ii"] = {
-								query = "@conditional.inner",
-								desc = "select inner part of a conditional",
-							}, ]]
+      vim.treesitter.language.register("bash", "zsh")
 
-						["al"] = {
-							query = "@loop.outer",
-							desc = "select outer part of a loop",
-						},
-						["il"] = {
-							query = "@loop.inner",
-							desc = "select inner part of a loop",
-						},
+      -- 2) включение подсветки + indent по буферу (замена highlight.enable)
+      local max_filesize = 500 * 1024
+      vim.api.nvim_create_autocmd("FileType", {
+        group = vim.api.nvim_create_augroup("ts_start", { clear = true }),
+        callback = function(ev)
+          local name = vim.api.nvim_buf_get_name(ev.buf)
+          local ok, st = pcall(vim.uv.fs_stat, name)
+          if ok and st and st.size > max_filesize then return end
+          if pcall(vim.treesitter.start, ev.buf) then
+            vim.bo[ev.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end
+        end,
+      })
 
-						["ac"] = {
-							query = "@call.outer",
-							desc = "select outer part of a function call",
-						},
-						["ic"] = {
-							query = "@call.inner",
-							desc = "select inner part of a function call",
-						},
+      -- 3) textobjects — новый API
+      require("nvim-treesitter-textobjects").setup({
+        select = { lookahead = true, include_surrounding_whitespace = false },
+        move = { set_jumps = true },
+      })
+      local select = require("nvim-treesitter-textobjects.select")
+      local move   = require("nvim-treesitter-textobjects.move")
+      local swap   = require("nvim-treesitter-textobjects.swap")
 
-						["af"] = {
-							query = "@function.outer",
-							desc = "select outer part of a method/function definition",
-						},
-						["if"] = {
-							query = "@function.inner",
-							desc = "select inner part of a method/function definition",
-						},
+      local sel    = {
+        ["a="] = "@assignment.outer",
+        ["i="] = "@assignment.inner",
+        ["r="] = "@assignment.rhs",
+        ["aa"] = "@parameter.outer",
+        ["ia"] = "@parameter.inner",
+        ["al"] = "@loop.outer",
+        ["il"] = "@loop.inner",
+        ["ac"] = "@call.outer",
+        ["ic"] = "@call.inner",
+        ["af"] = "@function.outer",
+        ["if"] = "@function.inner",
+        ["at"] = "@class.outer",
+        ["it"] = "@class.inner",
+        ["an"] = "@block.outer",
+        ["in"] = "@block.inner",
+      }
+      for lhs, q in pairs(sel) do
+        vim.keymap.set({ "x", "o" }, lhs, function()
+          select.select_textobject(q, "textobjects")
+        end, { desc = "TS select " .. q })
+      end
 
-						["at"] = {
-							query = "@class.outer",
-							desc = "select outer part of a type",
-						},
-						["it"] = {
-							query = "@class.inner",
-							desc = "select inner part of a type",
-						},
+      local moves = {
+        goto_next_start     = { ["]m"] = "@function.outer", ["]i"] = "@conditional.outer", ["]e"] = "@elem.outer" },
+        goto_next_end       = { ["]M"] = "@function.outer", ["]I"] = "@conditional.outer", ["]E"] = "@elem.outer" },
+        goto_previous_start = { ["[m"] = "@function.outer", ["[i"] = "@conditional.outer", ["[e"] = "@elem.outer" },
+        goto_previous_end   = { ["[M"] = "@function.outer", ["[I"] = "@conditional.outer", ["[E"] = "@elem.outer" },
+      }
+      for method, maps in pairs(moves) do
+        for lhs, q in pairs(maps) do
+          vim.keymap.set({ "n", "x", "o" }, lhs, function()
+            move[method](q, "textobjects")
+          end, { desc = "TS " .. method .. " " .. q })
+        end
+      end
 
-						["an"] = {
-							query = "@block.outer",
-							desc = "select inner part of a block",
-						},
-						["in"] = {
-							query = "@block.inner",
-							desc = "select outer part of a block",
-						},
-					},
-				},
-				move = {
-					enable = true,
-					set_jumps = true,
-					goto_next_start = {
-						["]m"] = { query = "@function.outer", desc = "next function start" },
-						["]i"] = { query = "@conditional.outer", desc = "next conditional start" },
-						["]e"] = { query = "@elem.outer", desc = "next element start" },
-					},
-					goto_next_end = {
-						["]M"] = { query = "@function.outer", desc = "next function end" },
-						["]I"] = { query = "@conditional.outer", desc = "next conditional end" },
-						["]E"] = { query = "@elem.outer", desc = "next element end" },
-					},
-					goto_previous_start = {
-						["[m"] = { query = "@function.outer", desc = "prev function start" },
-						["[i"] = { query = "@conditional.outer", desc = "prev conditional start" },
-						["[e"] = { query = "@elem.outer", desc = "prev element start" },
-					},
-					goto_previous_end = {
-						["[M"] = { query = "@function.outer", desc = "prev function end" },
-						["[I"] = { query = "@conditional.outer", desc = "prev conditional end" },
-						["[E"] = { query = "@elem.outer", desc = "prev element end" },
-					},
-				},
-				swap = {
-					enable = true,
-					swap_next = {
-						["<leader>man"] = { query = "@parameter.inner", desc = "swap next parameter" },
-						["<leader>mfn"] = { query = "@function.outer", desc = "swap next function" },
-						["<leader>mcn"] = { query = "@class.outer", desc = "swap next class" },
-						["<leader>mpn"] = { query = "@attribute.outer", desc = "swap next attribute" },
-					},
-					swap_previous = {
-						["<leader>map"] = { query = "@parameter.inner", desc = "swap prev parameter" },
-						["<leader>mfp"] = { query = "@function.outer", desc = "swap prev function" },
-						["<leader>mcp"] = { query = "@class.outer", desc = "swap prev class" },
-						["<leader>mpp"] = { query = "@attribute.outer", desc = "swap prev attribute" },
-					},
-				},
-			},
-			sync_install = false,
-		},
-		-- build = ":TSUpdateSync",
-		config = function(_, opts)
-			require("nvim-treesitter").setup(opts)
-			vim.treesitter.language.register("bash", "zsh")
-			vim.keymap.set("n", "<leader>mir", "<cmd>CellularAutomaton make_it_rain<CR>")
-		end
-	}
+      local swaps = {
+        ["<leader>man"] = { swap.swap_next, "@parameter.inner" },
+        ["<leader>mfn"] = { swap.swap_next, "@function.outer" },
+        ["<leader>mcn"] = { swap.swap_next, "@class.outer" },
+        ["<leader>mpn"] = { swap.swap_next, "@attribute.outer" },
+        ["<leader>map"] = { swap.swap_previous, "@parameter.inner" },
+        ["<leader>mfp"] = { swap.swap_previous, "@function.outer" },
+        ["<leader>mcp"] = { swap.swap_previous, "@class.outer" },
+        ["<leader>mpp"] = { swap.swap_previous, "@attribute.outer" },
+      }
+      for lhs, spec in pairs(swaps) do
+        vim.keymap.set("n", lhs, function() spec[1](spec[2]) end, { desc = "swap " .. spec[2] })
+      end
+
+      vim.keymap.set("n", "<leader>mir", "<cmd>CellularAutomaton make_it_rain<CR>")
+    end,
+  },
 }
