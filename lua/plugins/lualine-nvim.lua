@@ -140,6 +140,11 @@ return {
 					always_show_tabline = false,
 				},
 				sections = {
+          lualine_a = {
+            function()
+              return vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+            end
+          },
 					lualine_b = {
 						"branch",
 						{
@@ -224,11 +229,6 @@ return {
 				},
 				winbar = {
 					lualine_a = {
-						{
-							function()
-								return vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
-							end
-						},
 						{
 							-- Функция filename с git интеграцией - использует git модуль
 							function()

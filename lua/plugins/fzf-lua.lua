@@ -1,15 +1,22 @@
 local uv = vim.uv
 
+-- (maybe backup) Зачем нужен был strip_fyler_prefix:
+--   у oil/fyler имя буфера идёт со схемой (oil:// , fyler://). Когда фокус был В самом
+--   explorer'е и ты жал "поиск в текущем каталоге", vim.fn.expand("%:p:h") возвращал
+--   путь СО схемой -> fzf получал битый cwd. Strip срезал схему.
+--   В zoxide-экшенах он был лишь подстраховкой (zoxide отдаёт чистые абсолютные пути).
+--   На mini.files фиксированный strip не подходит: имя minifiles://<id>/<path> (есть id-сегмент),
+--   поэтому вместо strip используем current_dir() ниже — он берёт реальный путь через API mini.files.
 ---Strips "oil://" or "fyler://" prefix from a string if present.
 ---@param path string
 ---@return string
-local function strip_fyler_prefix(path)
-	local prefix = "fyler://"
-	if vim.startswith(path, prefix) then
-		return path:sub(#prefix + 1)
-	end
-	return path
-end
+-- local function strip_fyler_prefix(path)
+-- 	local prefix = "fyler://"
+-- 	if vim.startswith(path, prefix) then
+-- 		return path:sub(#prefix + 1)
+-- 	end
+-- 	return path
+-- end
 -- local function strip_oil_prefix(path)
 -- 	local prefix = "oil://"
 -- 	if vim.startswith(path, prefix) then
@@ -26,7 +33,23 @@ return {
 			local fzf = require("fzf-lua")
 			local fzf_utils = require "fzf-lua.utils"
 			local fzf_path = require "fzf-lua.path"
-			local fyler = require("fyler")
+			-- local fyler = require("fyler") -- (maybe backup)
+			local mini_files = require("mini.files")
+
+			-- Реальный каталог "текущего места" (замена strip_fyler_prefix(expand "%:p:h")):
+			-- - в mini.files (имя minifiles://<id>/<path>) берём путь через его API
+			-- - в обычном файле — каталог файла
+			local function current_dir()
+				local name = vim.api.nvim_buf_get_name(0)
+				if name:match("^minifiles://") then
+					local ok, mf = pcall(require, "mini.files")
+					if ok then
+						local entry = mf.get_fs_entry()
+						if entry then return vim.fs.dirname(entry.path) end
+					end
+				end
+				return vim.fn.expand("%:p:h")
+			end
 
 			local config = {
 				git = {
@@ -55,36 +78,50 @@ return {
 					actions = {
 						["default"] = function(selected)
 							local path = selected[1]:match("[^\t]+$") or selected[1]
-							path = strip_fyler_prefix(path)
+							-- path = strip_fyler_prefix(path) -- (maybe backup) zoxide и так даёт чистый путь
 							-- Open using fyler API
-							fyler.open({ root_path = path })
+							-- fyler.open({ root_path = path }) -- (maybe backup)
+              if uv.fs_stat(path) then
+                vim.cmd.cd({ args = { vim.fn.fnameescape(path) }, mods = { silent = true } })
+                mini_files.open(path)
+              else
+                mini_files.open(path)
+              end
 						end,
 						["`"] = function(selected, opts)
 							local cwd = selected[1]:match("[^\t]+$") or selected[1]
-							if opts.cwd then
+							-- fix: zoxide отдаёт абсолютные пути; join только для относительных
+							if opts.cwd and not vim.startswith(cwd, "/") then
 								cwd = fzf_path.join({ opts.cwd, cwd })
 							end
 							local git_root = opts.git_root and fzf_path.git_root({ cwd = cwd }, true) or nil
 							cwd = git_root or cwd
-							cwd = strip_fyler_prefix(cwd)
+							-- cwd = strip_fyler_prefix(cwd) -- (maybe backup) zoxide и так даёт чистый путь
 							if uv.fs_stat(cwd) then
-								vim.cmd("cd " .. cwd)
-								fzf_utils.io_system({ "zoxide", "add", "--", cwd })
-								fyler.open({ root_path = cwd })
+								-- fix: экранируем путь (пробелы/спецсимволы)
+								vim.cmd.cd({ args = { vim.fn.fnameescape(cwd) }, mods = { silent = true } })
+								-- fix: убрано двойное добавление — DirChanged-автокоманда ниже сама зовёт zoxide add
+								-- fzf_utils.io_system({ "zoxide", "add", "--", cwd })
+								-- fyler.open({ root_path = cwd }) -- (maybe backup)
+								mini_files.open(cwd)
 							end
 						end,
 						["~"] = function(selected, opts)
 							local cwd = selected[1]:match("[^\t]+$") or selected[1]
-							if opts.cwd then
+							-- fix: zoxide отдаёт абсолютные пути; join только для относительных
+							if opts.cwd and not vim.startswith(cwd, "/") then
 								cwd = fzf_path.join({ opts.cwd, cwd })
 							end
 							local git_root = opts.git_root and fzf_path.git_root({ cwd = cwd }, true) or nil
 							cwd = git_root or cwd
-							cwd = strip_fyler_prefix(cwd)
+							-- cwd = strip_fyler_prefix(cwd) -- (maybe backup) zoxide и так даёт чистый путь
 							if uv.fs_stat(cwd) then
-								vim.cmd("tcd " .. cwd)
-								fzf_utils.io_system({ "zoxide", "add", "--", cwd })
-								fyler.open({ root_path = cwd })
+								-- fix: экранируем путь (пробелы/спецсимволы)
+								vim.cmd.tcd({ args = { vim.fn.fnameescape(cwd) }, mods = { silent = true } })
+								-- fix: убрано двойное добавление — DirChanged-автокоманда ниже сама зовёт zoxide add
+								-- fzf_utils.io_system({ "zoxide", "add", "--", cwd })
+								-- fyler.open({ root_path = cwd }) -- (maybe backup)
+								mini_files.open(cwd)
 							end
 						end,
 					},
@@ -114,14 +151,16 @@ return {
 
 			vim.keymap.set("n", "<leader>fF", function()
 				fzf.files {
-					cwd = strip_fyler_prefix(vim.fn.expand "%:p:h"),
+					-- (maybe backup) было: strip_fyler_prefix(vim.fn.expand "%:p:h")
+					cwd = current_dir(),
 				}
 			end, { desc = "find files in current dir" })
 
 			vim.keymap.set("v", "<leader>fF", function()
 				local input = fzf_utils.get_visual_selection()
 				fzf.files {
-					cwd = strip_fyler_prefix(vim.fn.expand "%:p:h"),
+					-- (maybe backup) было: strip_fyler_prefix(vim.fn.expand "%:p:h")
+					cwd = current_dir(),
 					fzf_opts = {
 						['--query'] = input,
 					}
@@ -140,13 +179,15 @@ return {
 
 			vim.keymap.set("n", "<leader>fG", function()
 				fzf.live_grep {
-					cwd = strip_fyler_prefix(vim.fn.expand "%:p:h"),
+					-- (maybe backup) было: strip_fyler_prefix(vim.fn.expand "%:p:h")
+					cwd = current_dir(),
 				}
 			end, { desc = "find files in current dir" })
 
 			vim.keymap.set("v", "<leader>fG", function()
 				fzf.live_grep {
-					cwd = strip_fyler_prefix(vim.fn.expand "%:p:h"),
+					-- (maybe backup) было: strip_fyler_prefix(vim.fn.expand "%:p:h")
+					cwd = current_dir(),
 					search = fzf_utils.get_visual_selection(),
 				}
 			end, { desc = "find files in current dir for selection" })
@@ -212,7 +253,8 @@ return {
 			---Adds directory to zoxide asynchronously
 			---@param dir string
 			local function add_to_zoxide(dir)
-				local clean_dir = strip_fyler_prefix(dir)
+				-- (maybe backup) было: local clean_dir = strip_fyler_prefix(dir)
+				local clean_dir = dir
 				vim.fn.jobstart({
 					"zoxide", "add", clean_dir
 				}, {
