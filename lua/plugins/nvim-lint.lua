@@ -5,36 +5,22 @@ return {
     -- enabled = false,
     config = function()
       local lint = require('lint')
-      -- phpstan из vendor/bin проекта
-      local phpstan = lint.linters.phpstan
-      phpstan.cmd = function()
-        local root = util.root_pattern("composer.json", ".git")(vim.api.nvim_buf_get_name(0)) or vim.fn.getcwd()
-        return root .. "/vendor/bin/phpstan"
-      end
-      local util = require("lspconfig.util")
-      local max_file_size = 1024 * 1024 -- 1MB
+      local max_file_size = 1024 * 1024
 
-      local function has_eslint_config(bufnr)
-        bufnr = bufnr or vim.api.nvim_get_current_buf()
-        local fname = vim.api.nvim_buf_get_name(bufnr)
-        local root = util.root_pattern(
-          ".eslintrc",
-          ".eslintrc.js",
-          ".eslintrc.cjs",
-          ".eslintrc.json",
-          ".eslintrc.yaml",
-          ".eslintrc.yml",
-          "eslint.config.js",
-          "eslint.config.cjs",
-          "eslint.config.mjs",
-          "eslint.config.ts"
-        )(fname)
-        return root ~= nil
+      local function root(markers) return vim.fs.root(0, markers) or vim.fn.getcwd() end
+      local function has_eslint_config()
+        return vim.fs.root(0, {
+          ".eslintrc", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json",
+          ".eslintrc.yaml", ".eslintrc.yml", "eslint.config.js",
+          "eslint.config.cjs", "eslint.config.mjs", "eslint.config.ts",
+        }) ~= nil
+      end
+      local function has_phpstan_config()
+        return vim.fs.root(0, { "phpstan.neon", "phpstan.neon.dist", "phpstan.dist.neon" }) ~= nil
       end
 
-      local function has_phpstan_config(bufnr)
-        local fname = vim.api.nvim_buf_get_name(bufnr or 0)
-        return util.root_pattern("phpstan.neon", "phpstan.neon.dist", "phpstan.dist.neon")(fname) ~= nil
+      lint.linters.phpstan.cmd = function()
+        return root({ "composer.json", ".git" }) .. "/vendor/bin/phpstan"
       end
 
       lint.linters_by_ft = {
@@ -65,11 +51,11 @@ return {
 
             local needs_phpstan = lint.linters_by_ft[ft]
                 and vim.tbl_contains(lint.linters_by_ft[ft], "phpstan")
-            if needs_phpstan and not has_phpstan_config(bufnr) then
+            if needs_phpstan and not has_phpstan_config() then
               return
             end
             -- если линтер eslint_d, но конфиг не найден — пропускаем
-            if needs_eslint and not has_eslint_config(bufnr) then
+            if needs_eslint and not has_eslint_config() then
               return
             end
 
