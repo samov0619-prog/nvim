@@ -27,20 +27,21 @@ return {
 					automatic_enable = true,
 					ensure_installed = {
 						"bashls",
-						-- "cssls",
-						-- "css_variables",
-						-- "cssmodules_ls",
-						-- "eslint",
-						-- "html",
-						-- "jsonls",
+						"cssls",
+						"css_variables",
+						"cssmodules_ls",
+						"eslint",
+						"html",
+						"jsonls",
 						"hyprls",
 						"lua_ls",
-						-- "stylelint_lsp",
+						"stylelint_lsp",
 						-- "marksman",
 						"lemminx",
 						"jdtls",
-						-- "ts_ls",
-						-- "vue_ls"
+						"ts_ls",
+						"vue_ls",
+            -- "vtsls",
             "intelephense",
 					}
 				}
@@ -54,10 +55,10 @@ return {
 		config = function()
 			require('mason-tool-installer').setup {
 				ensure_installed = {
-					-- "prettier",
-					-- "eslint_d",
+					"prettier",
+					"eslint_d",
 					"biome",
-					-- "stylelint",
+					"stylelint",
           "beautysh",
 					"shfmt",
 					"mdformat",
