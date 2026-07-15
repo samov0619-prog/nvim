@@ -1,9 +1,64 @@
-; textobjects.scm — json
+;; extends
+; ~/.config/nvim/after/queries/json/textobjects.scm
+;
+; Обслуживает ДВА филетайпа: json и jsonc.
+; jsonc — не парсер, а алиас: nvim-treesitter делает
+;   vim.treesitter.language.register('json', 'jsonc')
+; (plugin/filetypes.lua: json = { 'jsonc' }), поэтому для .jsonc nvim идёт
+; сюда, в queries/json/. Каталог after/queries/jsonc/ не читается НИКОГДА.
+;
+; `;; extends` обязателен: стоковый queries/json/textobjects.scm существует
+; (в нём ровно одна строка `(comment) @comment.outer`) и без модлайна
+; забирает роль базы, а этот файл молча выбрасывается.
+;
+; json5 — ОТДЕЛЬНАЯ грамматика с другими именами узлов, ему нужен свой файл.
+
+; ============================================================================
+; Объект. Раскладываем на @obj.* и @block.*, чтобы работала и aO/iO,
+; и привычные по JS ao/io.
+; ============================================================================
 (object) @obj.outer
-(object) @obj.inner
+(object) @block.outer
 
-(array (object) @obj_in_array.outer)
-(array (object) @obj_in_array.inner)
+; Якорный `_+` вместо `(_)*` из стокового ecma: без якорей диапазон inner
+; получается обрезанным. Побочный эффект: на пустом `{}` inner не сматчится
+; (нечего захватывать) — как и в апстриме.
+(object
+  .
+  "{"
+  _+ @obj.inner
+  "}"
+  .)
 
-(array (_) @elem.outer)
-(array (_) @elem.inner)
+(object
+  .
+  "{"
+  _+ @block.inner
+  "}"
+  .)
+
+; ============================================================================
+; Элемент массива — ae, ]e, [e
+; ============================================================================
+(array
+  (_) @elem.outer)
+
+; ============================================================================
+; Пара ключ-значение == присваивание. Зеркалит стоковый ecma:
+;   (object (pair key: (_) @assignment.lhs
+;                 value: (_) @assignment.inner @assignment.rhs) @assignment.outer)
+; Благодаря этому a= / i= / r= / l= работают в JSON ровно как в JS.
+; ============================================================================
+(object
+  (pair
+    key: (_) @assignment.lhs
+    value: (_) @assignment.inner @assignment.rhs) @assignment.outer)
+
+; ============================================================================
+; @swappable.outer — читается smart_swap (<leader>a / <leader>A)
+; ============================================================================
+(object
+  (pair) @swappable.outer)
+
+(array
+  (_) @swappable.outer)

@@ -124,6 +124,16 @@ vim.keymap.set("n", "<leader>k", ":m .-2<CR>==", described(opts, "move line up")
 vim.keymap.set("v", "<leader>j", ":'<,'>m '>+1<CR>gv=gv", described(opts, "move selection down"))
 vim.keymap.set("v", "<leader>k", ":'<,'>m '<-2<CR>gv=gv", described(opts, "move selection up"))
 
+-- Increment-decrement selection
+vim.keymap.set('n', '<C-Space>', ':normal van<cr>', opts)
+vim.keymap.set('v', '<C-Space>', function()
+  vim.api.nvim_feedkeys('an', 'v', false)
+end)
+vim.keymap.set('n', '<C-Backspace>', ':normal vin<cr>', opts)
+vim.keymap.set('v', '<C-Backspace>', function()
+  vim.api.nvim_feedkeys('in', 'v', false)
+end)
+
 -- EDITOR --
 vim.keymap.set("n", "<leader>cl", function() vim.opt.cursorline = not vim.opt.cursorline:get() end,
 	described(opts, "toggle cursor line"))
