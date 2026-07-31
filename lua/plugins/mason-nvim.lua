@@ -36,6 +36,7 @@ return {
 						"hyprls",
 						"lua_ls",
 						"stylelint_lsp",
+            "tsgo",
 						-- "marksman",
 						"lemminx",
 						"jdtls",

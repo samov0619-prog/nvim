@@ -94,6 +94,17 @@ return {
 				}
 			})
 
+			vim.lsp.config("tsgo", {
+				filetypes = {
+					"javascript",
+					"javascriptreact",
+					"javascript.jsx",
+					"typescript",
+					"typescriptreact",
+					"typescript.tsx",
+				},
+			})
+
 			vim.lsp.config("ts_ls", {
 				init_options = {
 					plugins = {
@@ -106,12 +117,6 @@ return {
 					},
 				},
 				filetypes = {
-					"javascript",
-					"javascriptreact",
-					"javascript.jsx",
-					"typescript",
-					"typescriptreact",
-					"typescript.tsx",
 					"vue",
 				},
 			})
@@ -145,9 +150,9 @@ return {
       --   end,
       --   filetypes = tsserver_filetypes,
       -- }
-      local vue_ls_config = {}
+      -- local vue_ls_config = {}
       -- vim.lsp.config('vtsls', vtsls_config)
-      vim.lsp.config('vue_ls', vue_ls_config)
+      -- vim.lsp.config('vue_ls', vue_ls_config)
 
 			vim.lsp.config("lua_ls", {
 				root_markers = {
@@ -217,12 +222,14 @@ return {
 
 			vim.lsp.enable({
         "gopls",
-				"bash_ls",
+				"bashls",
 				"hyprls",
 				"lua_ls",
 				"nixd",
-        -- "vtsls",
-        "vue_ls"
+				-- "marksman",
+				"tsgo",
+				"ts_ls",
+				"vue_ls",
 			})
 
 			vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter' }, {
