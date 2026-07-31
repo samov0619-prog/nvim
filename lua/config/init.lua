@@ -65,8 +65,32 @@ vim.opt.cursorline = true
 
 vim.opt.spell = true
 vim.opt.spelllang    = { "en", "ru", "dev" }
-vim.opt.spellfile    = vim.fn.stdpath("config") .. "/spell/en.utf-8.add"  -- личные zg-слова
+local spell_dir = vim.fn.stdpath("config") .. "/spell/"
+local english_spellfile = spell_dir .. "en.utf-8.add"
+local russian_spellfile = spell_dir .. "ru.utf-8.add"
+local personal_spellfiles = { english_spellfile, russian_spellfile }
+
+vim.opt.spellfile = personal_spellfiles
 vim.opt.spelloptions = "camel"   -- FileManager1 -> File + Manager, проверяются по отдельности
+vim.keymap.set("n", "zg", function()
+  local word = vim.fn.expand("<cword>")
+  local spellfile = english_spellfile
+  for _, char in ipairs(vim.fn.split(word, [[\zs]])) do
+    local codepoint = vim.fn.char2nr(char)
+    if codepoint >= 0x0400 and codepoint <= 0x052F then
+      spellfile = russian_spellfile
+      break
+    end
+  end
+
+  if vim.fn.filereadable(spellfile) == 0 then
+    vim.fn.writefile({}, spellfile)
+  end
+
+  vim.opt.spellfile = { spellfile }
+  vim.cmd("normal! zg")
+  vim.opt.spellfile = personal_spellfiles
+end, described(opts, "add word to the matching spell dictionary"))
 vim.api.nvim_create_autocmd({ "BufWinEnter", "TermOpen" }, {
   callback = function(ev)
     if vim.bo[ev.buf].buftype ~= "" then      -- всё, что не обычный файл
