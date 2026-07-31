@@ -44,10 +44,11 @@ vim.keymap.set('n', '<leader>scr', function()
 end, described(opts, "create scratch buffer"))
 
 -- TERMINAL --
+vim.keymap.set('n', '<leader>tt', ':belowright sp | terminal<CR> i', described(opts, "open terminal new tab"))
 -- Open bottom
-vim.keymap.set('n', '<leader>th', ':belowright sp | terminal<CR> i', described(opts, "open terminal horizontal"))
+vim.keymap.set('n', '<leader>th', ':belowright sp | terminal<CR> i', described(opts, "open terminal bottom"))
 -- Open right
-vim.keymap.set('n', '<leader>tv', ':belowright vsp | terminal<CR> i', described(opts, "open terminal vertical"))
+vim.keymap.set('n', '<leader>tv', ':belowright vsp | terminal<CR> i', described(opts, "open terminal by side"))
 -- Open external terminal to wd
 vim.keymap.set('n', '<leader>tx', function()
 	if os_name == "Darwin" then

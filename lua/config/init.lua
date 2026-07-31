@@ -7,7 +7,7 @@ local os_name = vim.uv.os_uname().sysname
 if os_name == "Darwin" then
 	vim.opt.shell = '/bin/zsh'
 else
-	vim.opt.shell = '/usr/bin/zsh'
+	vim.opt.shell = '/usr/bin/fish'
 end
 -- ENV --
 vim.env.NVIM_CFG = vim.fn.stdpath("config")
