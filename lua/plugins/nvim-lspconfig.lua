@@ -21,6 +21,18 @@ return {
 					on_attach = function(client, bufnr)
 						-- client.server_capabilities.semanticTokensProvider = nil
 
+						-- If marksman is enabled, uncomment this block to normalize its invalid vim.NIL scheme.
+						-- Also uncomment "marksman" in mason-nvim.lua and vim.lsp.enable below.
+						-- if client.name == "marksman" then
+						-- 	local file_operations = vim.tbl_get(client, "server_capabilities", "workspace", "fileOperations")
+						-- 	for _, operation in pairs(file_operations or {}) do
+						-- 		local filters = type(operation) == "table" and operation.filters
+						-- 		for _, filter in ipairs(filters or {}) do
+						-- 			if filter.scheme == vim.NIL then filter.scheme = nil end
+						-- 		end
+						-- 	end
+						-- end
+
 
 						vim.keymap.set(
 							"n",
