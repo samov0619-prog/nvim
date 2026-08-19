@@ -80,19 +80,6 @@ return {
 
 			vim.g.sonokai_enable_italic = true
 
-			toggle(theme)
-
-			vim.cmd.colorscheme('sonokai')
-
-			vim.cmd.highlight('IndentLineCurrent guifg=#414550')
-
-			-- vim.api.nvim_set_hl(0, "MatchParen", {
-			-- 	bg = '#acfafe',
-			-- 	fg = '#000000',
-			-- })
-
-			-- vim.g.sonokai_transparent_background = 1
-
 			vim.api.nvim_create_autocmd("ColorScheme", {
 				pattern = "*",
 				callback = function()
@@ -116,6 +103,17 @@ return {
 				end
 				,
 			})
+
+			toggle(theme)
+
+			vim.cmd.highlight('IndentLineCurrent guifg=#414550')
+
+			-- vim.api.nvim_set_hl(0, "MatchParen", {
+			-- 	bg = '#acfafe',
+			-- 	fg = '#000000',
+			-- })
+
+			-- vim.g.sonokai_transparent_background = 1
 		end
 	}
 }
