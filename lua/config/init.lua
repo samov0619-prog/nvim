@@ -13,8 +13,6 @@ end
 vim.env.NVIM_CFG = vim.fn.stdpath("config")
 
 -- vim.env.ALACRITTY_CFG = vim.env.APPDATA .. "/alacritty/"
-vim.env.PATH = "/home/amtea/.nvm/versions/node/v22.14.0/bin:" .. vim.env.PATH
-
 local function load_custom_env(path)
 	local file = io.open(path, "r")
 	if not file then return end

@@ -212,22 +212,6 @@ return {
 				fzf.loclist()
 			end, { desc = "find in loc list stack" })
 
-			vim.keymap.set("n", "<leader>fs", function()
-				fzf.lsp_document_symbols()
-			end, { desc = "find document symbols" })
-
-			vim.keymap.set("n", "<leader>fS", function()
-				fzf.lsp_live_workspace_symbols()
-			end, { desc = "find workspace symbols" })
-
-			vim.keymap.set("n", "<leader>fd", function()
-				fzf.diagnostics_document()
-			end, { desc = "find document diagnostics" })
-
-			vim.keymap.set("n", "<leader>fD", function()
-				fzf.diagnostics_workspace()
-			end, { desc = "find workspace diagnostics" })
-
 			vim.keymap.set("n", "<leader>fm", function()
 				fzf.marks()
 			end, { desc = "find marks" })

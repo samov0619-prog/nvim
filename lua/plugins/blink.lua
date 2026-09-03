@@ -5,7 +5,6 @@ return {
 		-- enabled = false,
 		dependencies = {
 			'L3MON4D3/LuaSnip',
-			"moyiz/blink-emoji.nvim",
 		},
 		---@module 'blink.cmp'
 		---@type blink.cmp.Config
@@ -66,21 +65,8 @@ return {
 				['C-p'] = { 'select_prev', 'snippet_backward', 'fallback' },
 			},
 			sources = {
-				default = { 'lsp', 'path', 'snippets', 'buffer', 'emoji' },
+				default = { 'buffer', 'path', 'snippets' },
 				providers = {
-					emoji = {
-						module = "blink-emoji",
-						name = "Emoji",
-						score_offset = 15, -- Tune by preference
-						-- min_keyword_length = 2,
-						opts = {
-							---@type string|table|fun():table
-							trigger = { ":" }
-						},
-						should_show_items = function()
-							return true
-						end
-					},
 					cmdline = {
 						min_keyword_length = function(ctx)
 							-- when typing a command, only show when the keyword is 3 characters or longer
