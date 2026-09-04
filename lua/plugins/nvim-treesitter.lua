@@ -84,7 +84,10 @@ return {
           :filter(function(p) return not vim.tbl_contains(installed, p) end)
           :totable()
       if #to_install > 0 then
-        require("nvim-treesitter").install(to_install)
+        require("nvim-treesitter").install(to_install, {
+          max_jobs = 1,
+          summary = true,
+        })
       end
 
       -- zsh-буферы парсим bash-грамматикой (своего парсера у zsh нет).
