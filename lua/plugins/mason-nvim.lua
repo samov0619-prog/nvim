@@ -36,7 +36,7 @@ return {
 						"hyprls",
 						"lua_ls",
 						"stylelint_lsp",
-            "tsgo",
+						-- "tsgo", -- TS7-preview несовместим с tsconfig проектов
 						-- "marksman",
 						"lemminx",
 						"jdtls",

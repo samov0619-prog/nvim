@@ -16,105 +16,60 @@ return {
 				}
 			)
 
-			vim.lsp.config("*",
-				{
-					on_attach = function(client, bufnr)
-						-- client.server_capabilities.semanticTokensProvider = nil
-
-						-- If marksman is enabled, uncomment this block to normalize its invalid vim.NIL scheme.
-						-- Also uncomment "marksman" in mason-nvim.lua and vim.lsp.enable below.
-						-- if client.name == "marksman" then
-						-- 	local file_operations = vim.tbl_get(client, "server_capabilities", "workspace", "fileOperations")
-						-- 	for _, operation in pairs(file_operations or {}) do
-						-- 		local filters = type(operation) == "table" and operation.filters
-						-- 		for _, filter in ipairs(filters or {}) do
-						-- 			if filter.scheme == vim.NIL then filter.scheme = nil end
-						-- 		end
-						-- 	end
-						-- end
-
-
-						vim.keymap.set(
-							"n",
-							"<space>lgd",
-							vim.lsp.buf.definition,
-							vim.tbl_extend('force', { buffer = bufnr, desc = "go to definition" }, opts)
-						)
-						vim.keymap.set(
-							"n",
-							"<space>lgt",
-							vim.lsp.buf.type_definition,
-							vim.tbl_extend('force', { buffer = bufnr, desc = "go to type definition" }, opts)
-						)
-						vim.keymap.set(
-							"n",
-							"<space>lgr",
-							vim.lsp.buf.references,
-							vim.tbl_extend('force', { buffer = bufnr, desc = "go to references" }, opts)
-						)
-						vim.keymap.set(
-							"n",
-							"<space>lgi",
-							vim.lsp.buf.implementation,
-							vim.tbl_extend('force', { buffer = bufnr, desc = "go to implementation" }, opts)
-						)
-						vim.keymap.set(
-							{ "n", "i" },
-							"<C-s>",
-							vim.lsp.buf.signature_help,
-							vim.tbl_extend('force', { buffer = bufnr, desc = "signature help" }, opts)
-						)
-						vim.keymap.set(
-							{ "n", "i" },
-							"<C-a>",
-							vim.lsp.buf.hover,
-							vim.tbl_extend('force', { buffer = bufnr, desc = "hover" }, opts)
-						)
-						vim.keymap.set(
-							"n",
-							"<space>lrn",
-							vim.lsp.buf.rename,
-							vim.tbl_extend('force', { buffer = bufnr, desc = "rename" }, opts)
-						)
-						vim.keymap.set(
-							{ "n", "v" },
-							"<leader>lca",
-							vim.lsp.buf.code_action,
-							vim.tbl_extend('force', { desc = "code action" }, opts)
-						)
-						vim.keymap.set("n", "<leader>lrs", function()
-							local buf_clients = vim.lsp.get_clients({ bufnr = bufnr })
-							local seen = {}
-							vim.diagnostic.reset()
-							for _, buf_client in ipairs(buf_clients) do
-								local name = buf_client.name
-								if not seen[name] then
-									seen[name] = true
-									vim.cmd("LspRestart " .. name)
-								end
-							end
-							vim.notify("LSP restarted", vim.log.levels.INFO)
-						end, { desc = "reset diagnostics & restart lsp" })
+			local function lsp_on_attach(bufnr)
+				vim.keymap.set("n", "<space>lgd", vim.lsp.buf.definition,
+					vim.tbl_extend('force', { buffer = bufnr, desc = "go to definition" }, opts))
+				vim.keymap.set("n", "<space>lgt", vim.lsp.buf.type_definition,
+					vim.tbl_extend('force', { buffer = bufnr, desc = "go to type definition" }, opts))
+				vim.keymap.set("n", "<space>lgr", vim.lsp.buf.references,
+					vim.tbl_extend('force', { buffer = bufnr, desc = "go to references" }, opts))
+				vim.keymap.set("n", "<space>lgi", vim.lsp.buf.implementation,
+					vim.tbl_extend('force', { buffer = bufnr, desc = "go to implementation" }, opts))
+				vim.keymap.set({ "n", "i" }, "<C-s>", vim.lsp.buf.signature_help,
+					vim.tbl_extend('force', { buffer = bufnr, desc = "signature help" }, opts))
+				vim.keymap.set({ "n", "i" }, "<C-a>", vim.lsp.buf.hover,
+					vim.tbl_extend('force', { buffer = bufnr, desc = "hover" }, opts))
+				vim.keymap.set("n", "<space>lrn", vim.lsp.buf.rename,
+					vim.tbl_extend('force', { buffer = bufnr, desc = "rename" }, opts))
+				vim.keymap.set({ "n", "v" }, "<leader>lca", vim.lsp.buf.code_action,
+					vim.tbl_extend('force', { buffer = bufnr, desc = "code action" }, opts))
+				vim.keymap.set("n", "<leader>les", function()
+					if #vim.lsp.get_clients({ bufnr = bufnr, name = "eslint" }) == 0 then
+						vim.notify("eslint LSP is not attached", vim.log.levels.WARN)
+						return
 					end
-				}
-			)
+					vim.lsp.buf.code_action({
+						apply = true,
+						context = { only = { "source.fixAll.eslint" } },
+					})
+				end, vim.tbl_extend('force', { buffer = bufnr, desc = "eslint fix all" }, opts))
+				vim.keymap.set("n", "<leader>lrs", function()
+					local buf_clients = vim.lsp.get_clients({ bufnr = bufnr })
+					local seen = {}
+					vim.diagnostic.reset()
+					for _, buf_client in ipairs(buf_clients) do
+						local name = buf_client.name
+						if not seen[name] then
+							seen[name] = true
+							vim.cmd("LspRestart " .. name)
+						end
+					end
+					vim.notify("LSP restarted", vim.log.levels.INFO)
+				end, { buffer = bufnr, desc = "reset diagnostics & restart lsp" })
+			end
+
+			vim.api.nvim_create_autocmd("LspAttach", {
+				group = vim.api.nvim_create_augroup("LspKeymaps", { clear = true }),
+				callback = function(args)
+					if vim.lsp.get_client_by_id(args.data.client_id) then lsp_on_attach(args.buf) end
+				end,
+			})
 
 
 			vim.lsp.config("bashls", {
 				filetypes = {
 					"sh", "zsh"
 				}
-			})
-
-			vim.lsp.config("tsgo", {
-				filetypes = {
-					"javascript",
-					"javascriptreact",
-					"javascript.jsx",
-					"typescript",
-					"typescriptreact",
-					"typescript.tsx",
-				},
 			})
 
 			vim.lsp.config("ts_ls", {
@@ -124,13 +79,25 @@ return {
 							name = "@vue/typescript-plugin",
 							location = vim.fn.stdpath('data') ..
 								"/mason/packages/vue-language-server/node_modules/@vue/language-server",
-							languages = { "typescript", "vue" }
+							languages = { "vue" },
+							configNamespace = "typescript",
 						},
 					},
 				},
-				filetypes = {
-					"vue",
+				filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact", "vue" },
+			})
+
+			vim.lsp.config("vue_ls", {
+				cmd = {
+					vim.fn.stdpath("data") .. "/mason/packages/vue-language-server/node_modules/@vue/language-server/bin/vue-language-server.js",
+					"--stdio",
 				},
+				init_options = { vue = { hybridMode = true } },
+			})
+
+			vim.lsp.config("eslint", {
+				handlers = { ["textDocument/publishDiagnostics"] = function() end },
+				filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact", "vue" },
 			})
       -- local vue_language_server_path = vim.fn.exepath('vue-language-server')
       --   :gsub('/bin/vue%-language%-server$', '')
@@ -239,9 +206,9 @@ return {
 				"lua_ls",
 				"nixd",
 				-- "marksman",
-				"tsgo",
 				"ts_ls",
 				"vue_ls",
+				"eslint",
 			})
 
 			vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter' }, {

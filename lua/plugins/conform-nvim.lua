@@ -67,15 +67,40 @@ return {
         }
       end
 
+      local prettier_config_names = {
+        ".prettierrc", ".prettierrc.json", ".prettierrc.yml", ".prettierrc.yaml", ".prettierrc.json5",
+        ".prettierrc.js", ".prettierrc.cjs", ".prettierrc.mjs", ".prettierrc.ts", ".prettierrc.cts",
+        ".prettierrc.mts", ".prettierrc.toml", "prettier.config.js", "prettier.config.cjs",
+        "prettier.config.mjs", "prettier.config.ts", "prettier.config.cts", "prettier.config.mts",
+      }
+
+      local function has_prettier_config(bufnr)
+        local filename = vim.api.nvim_buf_get_name(bufnr)
+        if filename == "" then return false end
+        return vim.fs.root(vim.fs.dirname(filename), function(name, path)
+          if vim.tbl_contains(prettier_config_names, name) then return true end
+          if name ~= "package.json" then return false end
+          local ok, package_json = pcall(vim.json.decode, table.concat(vim.fn.readfile(path .. "/package.json"), "\n"))
+          return ok and package_json.prettier ~= nil
+        end) ~= nil
+      end
+
+      local function js_formatters(bufnr)
+        if has_prettier_config(bufnr) and require("conform").get_formatter_info("prettier", bufnr).available then
+          return { "prettier" }
+        end
+        return { "biome" }
+      end
+
       require("conform").setup({
         -- log_level = vim.log.levels.DEBUG,
         formatters_by_ft = {
-          javascript      = { "biome" },
-          javascriptreact = { "biome" },
-          typescript      = { "biome" },
-          typescriptreact = { "biome" },
-          vue             = { "biome" },
-          json            = { "biome" },
+          javascript      = js_formatters,
+          javascriptreact = js_formatters,
+          typescript      = js_formatters,
+          typescriptreact = js_formatters,
+          vue             = js_formatters,
+          json            = js_formatters,
           html            = { "biome" },
           yaml            = { "biome" },
 
@@ -112,7 +137,7 @@ return {
         }
       })
 
-      vim.keymap.set("", "<leader>fo", function()
+      vim.keymap.set({ "n", "v" }, "<leader>lfr", function()
         require("conform").format(
           {
             async = true,
@@ -128,7 +153,7 @@ return {
               end
             end
           end)
-      end, { desc = "Format" })
+      end, { desc = "format range or file" })
     end
   },
 }
