@@ -44,16 +44,13 @@ return {
 					})
 				end, vim.tbl_extend('force', { buffer = bufnr, desc = "eslint fix all" }, opts))
 				vim.keymap.set("n", "<leader>lrs", function()
-					local buf_clients = vim.lsp.get_clients({ bufnr = bufnr })
-					local seen = {}
-					vim.diagnostic.reset()
-					for _, buf_client in ipairs(buf_clients) do
-						local name = buf_client.name
-						if not seen[name] then
-							seen[name] = true
-							vim.cmd("LspRestart " .. name)
-						end
+					if #vim.lsp.get_clients({ bufnr = bufnr }) == 0 then
+						vim.notify("No LSP clients attached", vim.log.levels.WARN)
+						return
 					end
+
+					vim.diagnostic.reset(nil, bufnr)
+					vim.cmd.lsp({ args = { "restart" } })
 					vim.notify("LSP restarted", vim.log.levels.INFO)
 				end, { buffer = bufnr, desc = "reset diagnostics & restart lsp" })
 			end
