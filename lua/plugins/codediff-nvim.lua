@@ -197,7 +197,9 @@ local function setup_conflict_focus()
             for line = math.max(0, range.first), math.min(count, range.last) - 1 do
               api.nvim_buf_set_extmark(range.buf, ns, line, 0, {
                 line_hl_group = "CodeDiffConflictFocus",
-                priority = 90, -- Below CodeDiff's line/character highlights (100+).
+                -- A shared block background must override line tints (100),
+                -- while character-level changes (200) stay visible above it.
+                priority = 150,
               })
               painted[range.buf] = true
             end
