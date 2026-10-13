@@ -31,6 +31,7 @@ if target then
 end
 
 return {
+	--[[ Disabled while trying CodeDiff; keep the previous setup for reference.
 	{
 		"sindrets/diffview.nvim",
 		config = function()
@@ -54,4 +55,5 @@ return {
 			vim.keymap.set("n", "<leader>gdc", "<cmd>DiffviewClose<cr>", { desc = "diffview close" })
 		end
 	},
+	]]
 }

@@ -1,7 +1,23 @@
+local function compare_commits(from, to)
+	local result = vim.system({ "git", "rev-list", "--parents", "-n", "1", from }, { text = true }):wait(2000)
+	if result.code ~= 0 then
+		vim.notify("CodeDiff: не удалось прочитать коммит " .. from, vim.log.levels.WARN)
+		return
+	end
+	local parent = result.stdout:match("^%x+%s+(%x+)")
+	if not parent then
+		vim.notify("CodeDiff: сравнение недоступно — у начального коммита нет родителя (корневой коммит или граница shallow-клона)",
+			vim.log.levels.WARN)
+		return
+	end
+	vim.api.nvim_cmd({ cmd = "CodeDiff", args = { parent, to } }, {})
+end
+
 return {
 	{
 		'tea06194/gitgraph.nvim',
 		branch = "dual-mode",
+		dependencies = { "esmuellert/codediff.nvim" },
 		opts = {
 			git_cmd = "git",
 			-- symbols = {
@@ -38,12 +54,10 @@ return {
 			},
 			hooks = {
 				on_select_commit = function(commit)
-					vim.notify('DiffviewOpen ' .. commit.hash .. '^!')
-					vim.cmd(':DiffviewOpen ' .. commit.hash .. '^!')
+					compare_commits(commit.hash, commit.hash)
 				end,
 				on_select_range_commit = function(from, to)
-					vim.notify('DiffviewOpen ' .. from.hash .. '~1..' .. to.hash)
-					vim.cmd(':DiffviewOpen ' .. from.hash .. '~1..' .. to.hash)
+					compare_commits(from.hash, to.hash)
 				end,
 			},
 		},

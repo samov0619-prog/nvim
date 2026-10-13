@@ -36,12 +36,13 @@ return {
 				bg3 = { "#e0e0e0", "254" },
 				bg4 = { "#d8d8d8", "254" },
 				bg_red = { "#ff6077", "203" },
-				diff_red = { "#ffebee", "203" },
+				-- Legacy diff_* entries are not used by Sonokai or CodeDiff.
+				-- diff_red = { "#ffebee", "203" },
 				bg_green = { "#a7df78", "107" },
-				diff_green = { "#d9ffcf", "107" },
+				-- diff_green = { "#d9ffcf", "107" },
 				bg_blue = { "#7091ff", "110" },
-				diff_blue = { "#e6fdff", "110" },
-				diff_yellow = { "#ffffdc", "179" },
+				-- diff_blue = { "#e6fdff", "110" },
+				-- diff_yellow = { "#ffffdc", "179" },
 				fg = { "#303030", "236" },
 				red = { "#e61616", "203" },
 				orange = { "#dd8500", "215" },
@@ -94,9 +95,10 @@ return {
 					else
 						vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbol', { fg = '#d8d8d8' })
 						vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbolOff', { fg = '#ff9900' })
-						vim.api.nvim_set_hl(0, 'DiffChange', { bg = '#cdd8fe' })
-						vim.api.nvim_set_hl(0, 'DiffAdd', { bg = '#d5f0c1' })
-						vim.api.nvim_set_hl(0, 'DiffDelete', { bg = '#ffb3bd' })
+						-- Previous Diffview overrides; CodeDiff has its own explicit palette.
+						-- vim.api.nvim_set_hl(0, 'DiffChange', { bg = '#cdd8fe' })
+						-- vim.api.nvim_set_hl(0, 'DiffAdd', { bg = '#d5f0c1' })
+						-- vim.api.nvim_set_hl(0, 'DiffDelete', { bg = '#ffb3bd' })
 						-- vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbolOff', { fg = '#ff9900' })
 						-- vim.api.nvim_set_hl(0, 'MiniIndentscopeSymbolOff', { fg = '#ff9900' })
 					end
