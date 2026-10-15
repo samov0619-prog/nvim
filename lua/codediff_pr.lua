@@ -131,10 +131,7 @@ local function list_requests(repo, root, remote, provider)
 end
 
 function M.pick(remote)
-  local lifecycle = require("codediff.ui.lifecycle")
-  local session = lifecycle.get_session(vim.api.nvim_get_current_tabpage())
-  local cwd = session and session.git_root
-    or vim.fs.root(vim.api.nvim_buf_get_name(0), ".git") or vim.fn.getcwd()
+  local cwd = require("codediff_context").root()
   local function git(args)
     local result = vim.system(vim.list_extend({ "git", "-C", cwd }, args), { text = true }):wait(2000)
     return result.code == 0 and vim.trim(result.stdout) or nil

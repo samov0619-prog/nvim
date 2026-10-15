@@ -135,6 +135,7 @@ return {
 			'tpope/vim-obsession'
 		},
 		config = function()
+			local codediff_title = require('codediff_winbar').label
 			local config = {
 				options = {
 					always_show_tabline = false,
@@ -229,6 +230,7 @@ return {
 				},
 				winbar = {
 					lualine_a = {
+						{ codediff_title, separator = '', color = { gui = 'bold' } },
 						{
 							-- Функция filename с git интеграцией - использует git модуль
 							function()
@@ -242,6 +244,7 @@ return {
 									}):update_status()
 								end
 							end,
+							cond = function() return codediff_title() == nil end,
 							separator = '',
 							color = function() return vim.bo.modified and 'WarningMsg' end
 						},
@@ -268,6 +271,7 @@ return {
 					lualine_z = {
 						{
 							-- Простая функция сессии - оставляем inline
+							cond = function() return codediff_title() == nil end,
 							function()
 								local status = vim.fn.ObsessionStatus()
 								return #status == 0 and '[]' or
@@ -291,8 +295,10 @@ return {
 				},
 				inactive_winbar = {
 					lualine_a = {
+						{ codediff_title, separator = '', color = { gui = 'bold' } },
 						{
 							'filename',
+							cond = function() return codediff_title() == nil end,
 							path = 3,
 							shorting_target = 10,
 						}
