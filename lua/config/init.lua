@@ -149,3 +149,25 @@ vim.api.nvim_create_autocmd("SourcePost", {
 		end
 	end,
 })
+
+-- NEOVIDE --
+if vim.g.neovide then
+  -- Шрифт (как в Kitty)
+  vim.o.guifont = "NotoSansM Nerd Font Mono:h14"
+  vim.opt.linespace = 0
+
+  -- Анимации (секунды)
+  vim.g.neovide_scroll_animation_length = 0.12
+  vim.g.neovide_position_animation_length = 0.08
+  vim.g.neovide_cursor_animation_length = 0.06
+
+  -- Прокрутка колесом / тачпадом
+  vim.opt.mousescroll = "ver:3,hor:6"
+
+  -- Командная строка и отступы
+  vim.opt.cmdheight = 1
+  vim.g.neovide_padding_top = 0
+  vim.g.neovide_padding_bottom = 0
+  vim.g.neovide_padding_left = 0
+  vim.g.neovide_padding_right = 0
+end
