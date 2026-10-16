@@ -11,29 +11,31 @@ return {
         ".git",
       }
 
+      -- Проверка наличия конфигурации Biome или корня проекта
+      local function has_biome_context(bufnr)
+        local filename = vim.api.nvim_buf_get_name(bufnr)
+        if filename == "" then return false end
+
+        -- Ищем маркеры проекта вверх по дереву каталогов
+        local root = vim.fs.root(vim.fs.dirname(filename), project_markers)
+        return root ~= nil
+      end
+
       local function find_biome_config(self, ctx)
-        -- Сначала ищем в корне проекта
         local project_root = util.root_file(project_markers)(self, ctx)
 
         if project_root then
-          local project_configs = {
-            "biome.json",
-            "biome.jsonc",
-          }
-
+          local project_configs = { "biome.json", "biome.jsonc" }
           for _, config in ipairs(project_configs) do
             local config_path = project_root .. "/" .. config
             if vim.fn.filereadable(config_path) == 1 then
-              print("config_path", config_path)
               return config_path
             end
           end
         end
 
-        -- Затем в домашней директории
         local home_config = vim.fn.expand("~/biome.jsonc")
         if vim.fn.filereadable(home_config) == 1 then
-          print("home_config", home_config)
           return home_config
         end
 
@@ -42,14 +44,17 @@ return {
 
       local function create_biome_formatter()
         return {
-          command = util.from_node_modules("biome") or
-              vim.fn.expand("~/.local/share/nvim/mason/packages/biome/node_modules/@biomejs/biome/bin/biome"),
+          command = function(self, ctx)
+            return util.from_node_modules("biome")(self, ctx)
+                or vim.fn.expand("~/.local/share/nvim/mason/bin/biome")
+                or "biome"
+          end,
           args = function(self, ctx)
             local config_path = find_biome_config(self, ctx)
             local args = {
               "format",
               "--stdin-file-path",
-              "$FILENAME",
+              ctx.filename,
             }
 
             if config_path then
@@ -61,7 +66,6 @@ return {
           end,
           stdin = true,
           cwd = function(self, ctx)
-            -- Пытаемся найти корень проекта
             return util.root_file(project_markers)(self, ctx) or vim.fn.getcwd()
           end,
         }
@@ -85,24 +89,33 @@ return {
         end) ~= nil
       end
 
-      local function js_formatters(bufnr)
+      -- Динамический выбор форматировщика (Умный Фоллбек)
+      local function smart_fallback_formatter(bufnr)
+        -- 1. Если есть конфиг Prettier — используем его
         if has_prettier_config(bufnr) and require("conform").get_formatter_info("prettier", bufnr).available then
           return { "prettier" }
         end
-        return { "biome" }
+
+        -- 2. Если есть окружение для Biome (конфиг или хотя бы .git/package.json) — используем Biome
+        if has_biome_context(bufnr) and require("conform").get_formatter_info("biome", bufnr).available then
+          return { "biome" }
+        end
+
+        -- 3. Если это «голый» одиночный файл (как ваш index.html в пустой папке) — откатываемся на Prettier
+        return { "prettier" }
       end
 
       require("conform").setup({
-        -- log_level = vim.log.levels.DEBUG,
         formatters_by_ft = {
-          javascript      = js_formatters,
-          javascriptreact = js_formatters,
-          typescript      = js_formatters,
-          typescriptreact = js_formatters,
-          vue             = js_formatters,
-          json            = js_formatters,
-          html            = { "biome" },
-          yaml            = { "biome" },
+          -- Применяем умный фоллбек ко всем веб-форматам
+          javascript      = smart_fallback_formatter,
+          javascriptreact = smart_fallback_formatter,
+          typescript      = smart_fallback_formatter,
+          typescriptreact = smart_fallback_formatter,
+          json            = smart_fallback_formatter,
+          vue             = smart_fallback_formatter,
+          html            = smart_fallback_formatter,
+          yaml            = smart_fallback_formatter,
 
           css             = { "stylelint" },
           scss            = { "stylelint" },
@@ -117,8 +130,6 @@ return {
         formatters = {
           beautysh = {
             prepend_args = {
-              -- "--indent-size", "4",
-              -- "--tab",
               "--force-function-style", "paronly",
             },
           },
