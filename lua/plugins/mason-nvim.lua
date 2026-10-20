@@ -36,15 +36,15 @@ return {
 						"hyprls",
 						"lua_ls",
 						"stylelint_lsp",
-						-- "tsgo", -- TS7-preview несовместим с tsconfig проектов
 						-- "marksman",
 						"lemminx",
 						"jdtls",
 						"ts_ls",
 						"vue_ls",
-            -- "vtsls",
             "intelephense",
 						"yamlls",
+						-- "tsgo", -- Устаревшее имя LSP для нативного TS7 (теперь tsc); текущая связка ts_ls + vue_ls требует TS < 7.
+						-- "vtsls", -- Альтернатива ts_ls, а не дополнение: совместный запуск дублирует TS LSP; выбран ts_ls с Vue-плагином.
 					}
 				}
 			)
