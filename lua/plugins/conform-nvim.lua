@@ -115,7 +115,7 @@ return {
           json            = smart_fallback_formatter,
           vue             = smart_fallback_formatter,
           html            = smart_fallback_formatter,
-          yaml            = smart_fallback_formatter,
+          yaml            = { "prettier" },
 
           css             = { "stylelint" },
           scss            = { "stylelint" },

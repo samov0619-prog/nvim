@@ -44,6 +44,7 @@ return {
 						"vue_ls",
             -- "vtsls",
             "intelephense",
+						"yamlls",
 					}
 				}
 			)
@@ -64,7 +65,8 @@ return {
 					"shfmt",
 					"mdformat",
           "markdown-oxide",
-					"js-debug-adapter"
+					"js-debug-adapter",
+					"yamllint",
 				},
 				run_on_start = true,
 				debounce_hours = 5, -- at least 5 hours between attempts to install/update

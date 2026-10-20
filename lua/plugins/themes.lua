@@ -81,8 +81,16 @@ return {
 			vim.g.sonokai_enable_italic = true
 
 			vim.api.nvim_create_autocmd("ColorScheme", {
-				pattern = "*",
+				pattern = "sonokai",
 				callback = function()
+					-- Sonokai's diff branch changes global cursor-line highlights.
+					-- Keep normal styling even when switching themes from Diffview.
+					local config = vim.fn['sonokai#get_configuration']()
+					local palette = vim.fn['sonokai#get_palette'](config.style, config.colors_override)
+					local set_hl = vim.fn['sonokai#highlight']
+					set_hl('CursorLine', palette.none, palette.bg1)
+					set_hl('CursorLineNr', palette.fg, palette.none)
+
 					-- vim.api.nvim_set_hl(0, "MatchParen", {
 					-- 	bg = '#acfafe',
 					-- 	fg = '#000000',

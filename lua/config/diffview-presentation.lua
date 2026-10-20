@@ -2,7 +2,9 @@
 local M = {}
 local windows = {}
 local inherited = {}
-local groups = { "DiffAdd", "DiffChange", "DiffText", "DiffTextAdd", "DiffDelete" }
+-- Sonokai removes CursorLine's background in diff mode; UFO can also restore
+-- a stale window-local copy. Give Diffview its own live, background-only group.
+local groups = { "DiffAdd", "DiffChange", "DiffText", "DiffTextAdd", "DiffDelete", "CursorLine" }
 local aliases = {}
 for _, name in ipairs(groups) do aliases[name] = "UserDiffview" .. name end
 
@@ -14,8 +16,8 @@ local function set_colors()
     light = (r * 299 + g * 587 + b * 114) / 1000 > 128
   end
   local colors = light
-      and { "#E6F2E6", "#EEF1F7", "#B8CCE6", "#B8DEB8", "#F5F5F5" }
-      or { "#2E3D32", "#303844", "#4A617D", "#3E5B43", "#292B30" }
+      and { "#E6F2E6", "#EEF1F7", "#B8CCE6", "#B8DEB8", "#F5F5F5", "#F0F0F0" }
+      or { "#2E3D32", "#303844", "#4A617D", "#3E5B43", "#292B30", "#33353F" }
   for i, name in ipairs(groups) do
     -- Background only, so syntax foregrounds remain readable.
     vim.api.nvim_set_hl(0, aliases[name], { bg = colors[i] })

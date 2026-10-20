@@ -196,6 +196,18 @@ return {
       --   },
       -- })
 
+			vim.lsp.config("yamlls", {
+				settings = {
+					yaml = {
+						validate = true,
+						hover = true,
+						completion = true,
+						format = { enable = false },
+						schemaStore = { enable = true },
+					},
+				},
+			})
+
 			vim.lsp.enable({
         "gopls",
 				"bashls",
@@ -206,6 +218,7 @@ return {
 				"ts_ls",
 				"vue_ls",
 				"eslint",
+				"yamlls",
 			})
 
 			vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter' }, {
