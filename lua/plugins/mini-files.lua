@@ -20,6 +20,11 @@ return {
         },
       })
 
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "SwapDiffPrompt",
+        callback = function() mf.close() end,
+      })
+
       -- cwd на директорию текущей колонки (аналог actions.cd в oil).
       -- dirname(entry) = каталог, который сейчас показан (у всех записей колонки
       -- общий родитель), поэтому не важно, на какой строке курсор.
@@ -32,10 +37,32 @@ return {
         -- zoxide подхватит через DirChanged-автокоманду из fzf-конфига
       end
 
+      local function go_in(opts)
+        local entry = mf.get_fs_entry()
+        if entry and entry.fs_type == "file" then
+          local buf = vim.fn.bufadd(entry.path)
+          if not vim.api.nvim_buf_is_loaded(buf) then
+            -- nvim_win_set_buf() in MiniFiles bypasses SwapExists; :edit runs it.
+            local state = mf.get_explorer_state()
+            vim.api.nvim_win_call(state.target_window, function()
+              vim.cmd.edit(vim.fn.fnameescape(entry.path))
+            end)
+          end
+        end
+        mf.go_in(opts)
+      end
+
       vim.api.nvim_create_autocmd("User", {
         pattern = "MiniFilesBufferCreate",
         callback = function(args)
           local buf = args.data.buf_id
+
+          vim.keymap.set("n", mf.config.mappings.go_in, function()
+            for _ = 1, vim.v.count1 do go_in() end
+          end, { buffer = buf, nowait = true, desc = "Go in entry" })
+          vim.keymap.set("n", mf.config.mappings.go_in_plus, function()
+            go_in({ close_on_file = true })
+          end, { buffer = buf, nowait = true, desc = "Go in entry plus" })
 
           -- cwd по желанию
           vim.keymap.set("n", "`", function() set_cwd("cd") end,

@@ -97,6 +97,7 @@ return {
 
       local function attach(buf)
         if not vim.api.nvim_buf_is_valid(buf) then return end
+        if not vim.api.nvim_buf_is_loaded(buf) then return end
 
         -- Гейт по размеру: на файлах в мегабайты TS кладёт редактор.
         local name = vim.api.nvim_buf_get_name(buf)

@@ -130,7 +130,8 @@ return {
 
 			fzf.setup(config)
 
-			fzf.register_ui_select()
+			-- Escape must complete vim.ui.select's callback, rather than hide the picker.
+			fzf.register_ui_select({ no_hide = true })
 
 			vim.keymap.set("n", "<leader>fr", function()
 				fzf.resume()

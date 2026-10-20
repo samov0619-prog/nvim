@@ -6,7 +6,7 @@
 
 local M = {}
 
-local api, fn, v = vim.api, vim.fn, vim.v
+local api, fn = vim.api, vim.fn
 ---@class SwapDiffSwapInfo
 ---@field swappath string
 ---@field info NvimSwapInfo
@@ -42,29 +42,7 @@ local function abs_path(filename)
 	if not filename or filename == '' then
 		return ''
 	end
-	return fn.fnamemodify(filename, ':p')
-end
-
----Get absolute directory path
----@param filepath string
----@return string
-local function abs_dir(filepath)
-	if not filepath or filepath == '' then
-		return ''
-	end
-	return fn.fnamemodify(filepath, ':p:h')
-end
-
----Remove prefix from string
----@param prefix string
----@param str string
----@return string
-local function remove_prefix(prefix, str)
-	if str:sub(1, #prefix) == prefix then
-		return str:sub(#prefix + 1)
-	else
-		return str
-	end
+	return vim.fs.normalize(fn.fnamemodify(filename, ':p'))
 end
 
 ---Get swap file information for a file
@@ -73,11 +51,16 @@ end
 local function get_swapinfos(filepath)
 	local swapfiles = fn.swapfilelist() or {}
 	local results = {}
-	local swap_dir = abs_dir(v.swapname) .. '//'
+	local swap_dir = fn.fnamemodify(vim.v.swapname, ':p:h') .. '//'
 
 	for _, swapfile in ipairs(swapfiles) do
-		local abs_swap = abs_path(remove_prefix(swap_dir, swapfile))
+		local abs_swap = abs_path(swapfile)
 		local info = fn.swapinfo(abs_swap)
+		-- Some Neovim versions prefix an already absolute path with the swap directory.
+		if info and info.error and swapfile:sub(1, #swap_dir) == swap_dir then
+			abs_swap = abs_path(swapfile:sub(#swap_dir + 1))
+			info = fn.swapinfo(abs_swap)
+		end
 
 		if info and info.fname then
 			local abs_fname = abs_path(info.fname)
@@ -246,8 +229,9 @@ local function recover_swapfile(swapfile, callback)
     end
 
 	local cmd = {
-		'nvim',
-		'--noplugin',
+		vim.v.progpath,
+		'-u', 'NONE',
+		'-i', 'NONE',
 		'--headless',
 		'-n',
 		'-r',
@@ -397,6 +381,7 @@ local function show_prompt(pending)
 		'Delete all swapfiles and edit file normally',
 	}
 
+	api.nvim_exec_autocmds('User', { pattern = 'SwapDiffPrompt' })
 	vim.ui.select(options, {
 		prompt = string.format(
 			'SwapDiff: found %d dirty swapfile(s) for %s:',
@@ -441,7 +426,7 @@ function M.onSwapExists(args)
 	end
 
 	vim.v.swapchoice = 'e'
-	local filepath = args.match or abs_path(filename)
+	local filepath = abs_path(args.match or filename)
 	if not filepath or filepath == '' then
 		return
 	end
@@ -497,9 +482,8 @@ function M.setup()
 	-- Handle manual tab closure during recovery
 	api.nvim_create_autocmd('TabClosed', {
 		group = grp,
-		callback = function(args)
-			local closed_tab = tonumber(args.file)
-			if recovery_tab and closed_tab == recovery_tab then
+		callback = function()
+			if recovery_tab and not api.nvim_tabpage_is_valid(recovery_tab) then
 				recovery_tab = nil
 				complete_processing()
 			end
