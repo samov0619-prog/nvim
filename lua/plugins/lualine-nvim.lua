@@ -135,7 +135,13 @@ return {
 			'tpope/vim-obsession'
 		},
 		config = function()
-			local codediff_title = require('codediff_winbar').label
+			local function merge_preview_title()
+				local preview = package.loaded.merge_preview
+				return preview and preview.label() or ""
+			end
+			local function in_merge_preview()
+				return merge_preview_title() ~= ""
+			end
 			local config = {
 				options = {
 					always_show_tabline = false,
@@ -230,7 +236,7 @@ return {
 				},
 				winbar = {
 					lualine_a = {
-						{ codediff_title, separator = '', color = { gui = 'bold' } },
+						{ merge_preview_title, cond = in_merge_preview, separator = '', color = { gui = 'bold' } },
 						{
 							-- Функция filename с git интеграцией - использует git модуль
 							function()
@@ -244,7 +250,7 @@ return {
 									}):update_status()
 								end
 							end,
-							cond = function() return codediff_title() == nil end,
+							cond = function() return not in_merge_preview() end,
 							separator = '',
 							color = function() return vim.bo.modified and 'WarningMsg' end
 						},
@@ -271,7 +277,7 @@ return {
 					lualine_z = {
 						{
 							-- Простая функция сессии - оставляем inline
-							cond = function() return codediff_title() == nil end,
+							cond = function() return not in_merge_preview() end,
 							function()
 								local status = vim.fn.ObsessionStatus()
 								return #status == 0 and '[]' or
@@ -295,10 +301,10 @@ return {
 				},
 				inactive_winbar = {
 					lualine_a = {
-						{ codediff_title, separator = '', color = { gui = 'bold' } },
+						{ merge_preview_title, cond = in_merge_preview, separator = '', color = { gui = 'bold' } },
 						{
 							'filename',
-							cond = function() return codediff_title() == nil end,
+							cond = function() return not in_merge_preview() end,
 							path = 3,
 							shorting_target = 10,
 						}
