@@ -370,7 +370,9 @@ local function reset(s, all)
   if all then
     local before = lines(s.result)
     if vim.deep_equal(before, s.initial_preview) and vim.deep_equal(s.resolved, s.initial_resolved)
-        and vim.deep_equal(result_ranges(s), s.initial_ranges) then return end
+        and vim.deep_equal(result_ranges(s), s.initial_ranges) then
+      return
+    end
     if not commit_preview(s, before, s.initial_preview, s.initial_ranges, vim.deepcopy(s.initial_resolved)) then return end
   else
     local b = current_block(s)
@@ -379,7 +381,9 @@ local function reset(s, all)
     end
     local r = result_ranges(s)[b.id]
     if vim.deep_equal(slice(lines(s.result), r.first, r.last), b.seed)
-        and s.resolved[b.id] == s.initial_resolved[b.id] then return end
+        and s.resolved[b.id] == s.initial_resolved[b.id] then
+      return
+    end
     if not replace_preview(s, { [b.id] = b.seed }, true) then return end
   end
 end
@@ -720,7 +724,9 @@ local function attach_events(s)
   api.nvim_create_autocmd("WinClosed", {
     group = group,
     callback = function(event)
-      if tonumber(event.match) == s.host then queue_finish(s); return end
+      if tonumber(event.match) == s.host then
+        queue_finish(s); return
+      end
       for _, win in pairs(s.windows) do
         if tonumber(event.match) == win then
           queue_finish(s); return

@@ -10,7 +10,7 @@ local function goto_file_smart()
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     local buf = vim.api.nvim_win_get_buf(win)
     if vim.api.nvim_win_get_tabpage(win) ~= view.tabpage
-        and not vim.wo[win].winfixbuf    -- отсекает окна графа (winfixbuf)
+        and not vim.wo[win].winfixbuf      -- отсекает окна графа (winfixbuf)
         and vim.bo[buf].buftype == "" then -- только реальное файловое окно (mini.files float = acwrite, отсеётся)
       target = win
       break

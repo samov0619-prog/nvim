@@ -7,7 +7,7 @@ local M = {}
 ---@return table
 
 function M.described(x, desc)
-    return vim.tbl_extend("force", x, { desc = desc })
+  return vim.tbl_extend("force", x, { desc = desc })
 end
 
 return M

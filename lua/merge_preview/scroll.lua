@@ -70,7 +70,9 @@ end
 
 function M.align(s, driver)
   if s.aligning or s.laying_out or s.disposing or s.finish_pending or not s.display_ranges
-      or not api.nvim_tabpage_is_valid(s.tab) or driver ~= s.windows.result then return end
+      or not api.nvim_tabpage_is_valid(s.tab) or driver ~= s.windows.result then
+    return
+  end
   for kind, win in pairs(s.windows) do
     if not api.nvim_win_is_valid(win) or api.nvim_win_get_buf(win) ~= s.buffers[kind] then return end
   end

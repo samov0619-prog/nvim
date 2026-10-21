@@ -29,11 +29,15 @@ function M.config(s, kind)
   local middle = math.max(1, width - 2 * side - 2)
   local column = kind == "ours" and 0 or (kind == "result" and side or side + middle + 1)
   return {
-    relative = "editor", row = position[1], col = position[2] + column,
+    relative = "editor",
+    row = position[1],
+    col = position[2] + column,
     width = kind == "result" and middle or side,
     height = api.nvim_win_get_height(s.host),
     border = kind == "ours" and "none" or separator,
-    focusable = kind == "result", mouse = kind == "result", zindex = 40,
+    focusable = kind == "result",
+    mouse = kind == "result",
+    zindex = 40,
   }
 end
 
@@ -41,8 +45,13 @@ function M.help_config(buf)
   local width = math.max(1, math.min(84, vim.o.columns - 4))
   local height = math.max(1, math.min(api.nvim_buf_line_count(buf), vim.o.lines - vim.o.cmdheight - 4))
   return {
-    relative = "editor", style = "minimal", border = "rounded", zindex = 80,
-    title = " Merge · g? ", width = width, height = height,
+    relative = "editor",
+    style = "minimal",
+    border = "rounded",
+    zindex = 80,
+    title = " Merge · g? ",
+    width = width,
+    height = height,
     row = math.max(0, math.floor((vim.o.lines - height) / 2) - 1),
     col = math.max(0, math.floor((vim.o.columns - width) / 2) - 1),
   }
@@ -50,7 +59,9 @@ end
 
 function M.resize(s)
   if s.laying_out or s.closing or s.disposing or not api.nvim_win_is_valid(s.host)
-      or api.nvim_get_current_tabpage() ~= s.tab then return end
+      or api.nvim_get_current_tabpage() ~= s.tab then
+    return
+  end
   for _, win in pairs(s.windows) do if not api.nvim_win_is_valid(win) then return end end
   s.laying_out = true
   local ok, err = pcall(function()
@@ -75,7 +86,8 @@ function M.attach(s, group)
     group = group, callback = function() M.resize(s) end,
   })
   api.nvim_create_autocmd("OptionSet", {
-    group = group, pattern = { "laststatus", "showtabline", "cmdheight" },
+    group = group,
+    pattern = { "laststatus", "showtabline", "cmdheight" },
     callback = function() M.resize(s) end,
   })
   api.nvim_create_autocmd("WinEnter", {

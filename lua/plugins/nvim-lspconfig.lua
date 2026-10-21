@@ -1,101 +1,102 @@
 local opts = { noremap = true, silent = true }
 
 return {
-	{
-		"neovim/nvim-lspconfig",
-		dependencies = {
-			"folke/lazydev.nvim",
-			"Bilal2453/luvit-meta"
-		},
-		config = function()
-			require("lazydev").setup(
-				{
-					library = {
-						{ path = "luvit-meta/library", words = { "vim%.uv" } },
-					},
-				}
-			)
+  {
+    "neovim/nvim-lspconfig",
+    dependencies = {
+      "folke/lazydev.nvim",
+      "Bilal2453/luvit-meta"
+    },
+    config = function()
+      require("lazydev").setup(
+        {
+          library = {
+            { path = "luvit-meta/library", words = { "vim%.uv" } },
+          },
+        }
+      )
 
-			local function lsp_on_attach(bufnr)
-				vim.keymap.set("n", "<space>lgd", vim.lsp.buf.definition,
-					vim.tbl_extend('force', { buffer = bufnr, desc = "go to definition" }, opts))
-				vim.keymap.set("n", "<space>lgt", vim.lsp.buf.type_definition,
-					vim.tbl_extend('force', { buffer = bufnr, desc = "go to type definition" }, opts))
-				vim.keymap.set("n", "<space>lgr", vim.lsp.buf.references,
-					vim.tbl_extend('force', { buffer = bufnr, desc = "go to references" }, opts))
-				vim.keymap.set("n", "<space>lgi", vim.lsp.buf.implementation,
-					vim.tbl_extend('force', { buffer = bufnr, desc = "go to implementation" }, opts))
-				vim.keymap.set({ "n", "i" }, "<C-s>", vim.lsp.buf.signature_help,
-					vim.tbl_extend('force', { buffer = bufnr, desc = "signature help" }, opts))
-				vim.keymap.set({ "n", "i" }, "<C-a>", vim.lsp.buf.hover,
-					vim.tbl_extend('force', { buffer = bufnr, desc = "hover" }, opts))
-				vim.keymap.set("n", "<space>lrn", vim.lsp.buf.rename,
-					vim.tbl_extend('force', { buffer = bufnr, desc = "rename" }, opts))
-				vim.keymap.set({ "n", "v" }, "<leader>lca", vim.lsp.buf.code_action,
-					vim.tbl_extend('force', { buffer = bufnr, desc = "code action" }, opts))
-				vim.keymap.set("n", "<leader>les", function()
-					if #vim.lsp.get_clients({ bufnr = bufnr, name = "eslint" }) == 0 then
-						vim.notify("eslint LSP is not attached", vim.log.levels.WARN)
-						return
-					end
-					vim.lsp.buf.code_action({
-						apply = true,
-						context = { only = { "source.fixAll.eslint" } },
-					})
-				end, vim.tbl_extend('force', { buffer = bufnr, desc = "eslint fix all" }, opts))
-				vim.keymap.set("n", "<leader>lrs", function()
-					if #vim.lsp.get_clients({ bufnr = bufnr }) == 0 then
-						vim.notify("No LSP clients attached", vim.log.levels.WARN)
-						return
-					end
+      local function lsp_on_attach(bufnr)
+        vim.keymap.set("n", "<space>lgd", vim.lsp.buf.definition,
+          vim.tbl_extend('force', { buffer = bufnr, desc = "go to definition" }, opts))
+        vim.keymap.set("n", "<space>lgt", vim.lsp.buf.type_definition,
+          vim.tbl_extend('force', { buffer = bufnr, desc = "go to type definition" }, opts))
+        vim.keymap.set("n", "<space>lgr", vim.lsp.buf.references,
+          vim.tbl_extend('force', { buffer = bufnr, desc = "go to references" }, opts))
+        vim.keymap.set("n", "<space>lgi", vim.lsp.buf.implementation,
+          vim.tbl_extend('force', { buffer = bufnr, desc = "go to implementation" }, opts))
+        vim.keymap.set({ "n", "i" }, "<C-s>", vim.lsp.buf.signature_help,
+          vim.tbl_extend('force', { buffer = bufnr, desc = "signature help" }, opts))
+        vim.keymap.set({ "n", "i" }, "<C-a>", vim.lsp.buf.hover,
+          vim.tbl_extend('force', { buffer = bufnr, desc = "hover" }, opts))
+        vim.keymap.set("n", "<space>lrn", vim.lsp.buf.rename,
+          vim.tbl_extend('force', { buffer = bufnr, desc = "rename" }, opts))
+        vim.keymap.set({ "n", "v" }, "<leader>lca", vim.lsp.buf.code_action,
+          vim.tbl_extend('force', { buffer = bufnr, desc = "code action" }, opts))
+        vim.keymap.set("n", "<leader>les", function()
+          if #vim.lsp.get_clients({ bufnr = bufnr, name = "eslint" }) == 0 then
+            vim.notify("eslint LSP is not attached", vim.log.levels.WARN)
+            return
+          end
+          vim.lsp.buf.code_action({
+            apply = true,
+            context = { only = { "source.fixAll.eslint" } },
+          })
+        end, vim.tbl_extend('force', { buffer = bufnr, desc = "eslint fix all" }, opts))
+        vim.keymap.set("n", "<leader>lrs", function()
+          if #vim.lsp.get_clients({ bufnr = bufnr }) == 0 then
+            vim.notify("No LSP clients attached", vim.log.levels.WARN)
+            return
+          end
 
-					vim.diagnostic.reset(nil, bufnr)
-					vim.cmd.lsp({ args = { "restart" } })
-					vim.notify("LSP restarted", vim.log.levels.INFO)
-				end, { buffer = bufnr, desc = "reset diagnostics & restart lsp" })
-			end
+          vim.diagnostic.reset(nil, bufnr)
+          vim.cmd.lsp({ args = { "restart" } })
+          vim.notify("LSP restarted", vim.log.levels.INFO)
+        end, { buffer = bufnr, desc = "reset diagnostics & restart lsp" })
+      end
 
-			vim.api.nvim_create_autocmd("LspAttach", {
-				group = vim.api.nvim_create_augroup("LspKeymaps", { clear = true }),
-				callback = function(args)
-					if vim.lsp.get_client_by_id(args.data.client_id) then lsp_on_attach(args.buf) end
-				end,
-			})
+      vim.api.nvim_create_autocmd("LspAttach", {
+        group = vim.api.nvim_create_augroup("LspKeymaps", { clear = true }),
+        callback = function(args)
+          if vim.lsp.get_client_by_id(args.data.client_id) then lsp_on_attach(args.buf) end
+        end,
+      })
 
 
-			vim.lsp.config("bashls", {
-				filetypes = {
-					"sh", "zsh"
-				}
-			})
+      vim.lsp.config("bashls", {
+        filetypes = {
+          "sh", "zsh"
+        }
+      })
 
-			vim.lsp.config("ts_ls", {
-				init_options = {
-					plugins = {
-						{
-							name = "@vue/typescript-plugin",
-							location = vim.fn.stdpath('data') ..
-								"/mason/packages/vue-language-server/node_modules/@vue/language-server",
-							languages = { "vue" },
-							configNamespace = "typescript",
-						},
-					},
-				},
-				filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact", "vue" },
-			})
+      vim.lsp.config("ts_ls", {
+        init_options = {
+          plugins = {
+            {
+              name = "@vue/typescript-plugin",
+              location = vim.fn.stdpath('data') ..
+                  "/mason/packages/vue-language-server/node_modules/@vue/language-server",
+              languages = { "vue" },
+              configNamespace = "typescript",
+            },
+          },
+        },
+        filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact", "vue" },
+      })
 
-			vim.lsp.config("vue_ls", {
-				cmd = {
-					vim.fn.stdpath("data") .. "/mason/packages/vue-language-server/node_modules/@vue/language-server/bin/vue-language-server.js",
-					"--stdio",
-				},
-				init_options = { vue = { hybridMode = true } },
-			})
+      vim.lsp.config("vue_ls", {
+        cmd = {
+          vim.fn.stdpath("data") ..
+          "/mason/packages/vue-language-server/node_modules/@vue/language-server/bin/vue-language-server.js",
+          "--stdio",
+        },
+        init_options = { vue = { hybridMode = true } },
+      })
 
-			vim.lsp.config("eslint", {
-				handlers = { ["textDocument/publishDiagnostics"] = function() end },
-				filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact", "vue" },
-			})
+      vim.lsp.config("eslint", {
+        handlers = { ["textDocument/publishDiagnostics"] = function() end },
+        filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact", "vue" },
+      })
       -- local vue_language_server_path = vim.fn.exepath('vue-language-server')
       --   :gsub('/bin/vue%-language%-server$', '')
       --   .. '/lib/node_modules/@vue/language-server'
@@ -130,50 +131,50 @@ return {
       -- vim.lsp.config('vtsls', vtsls_config)
       -- vim.lsp.config('vue_ls', vue_ls_config)
 
-			vim.lsp.config("lua_ls", {
-				root_markers = {
-					"init.lua",
-					".luarc.json",
-					".luarc.jsonc",
-					".luacheckrc",
-					".stylua.toml",
-					"stylua.toml",
-					"selene.toml",
-					"selene.yml",
-					".git"
-				}
+      vim.lsp.config("lua_ls", {
+        root_markers = {
+          "init.lua",
+          ".luarc.json",
+          ".luarc.jsonc",
+          ".luacheckrc",
+          ".stylua.toml",
+          "stylua.toml",
+          "selene.toml",
+          "selene.yml",
+          ".git"
+        }
 
-			})
+      })
 
-			vim.lsp.config("lemminx", {
-				init_options = {
-					settings = {
-						xml = {
-							-- Когда в fonts.conf встретится SYSTEM "urn:fontconfig:fonts.dtd",
-							-- подставлять локальный файл /etc/fonts/fonts.dtd
-							fileAssociations = {
-								{
-									systemId = "urn:fontconfig:fonts.dtd",
-									uri      = "file:///etc/fonts/fonts.dtd",
-									pattern  = "**/fonts.conf",
-								},
-							},
-							-- Необязательно: OASIS‑каталоги мы не используем
-							catalogs = {},
-						},
-					},
-				},
-			})
+      vim.lsp.config("lemminx", {
+        init_options = {
+          settings = {
+            xml = {
+              -- Когда в fonts.conf встретится SYSTEM "urn:fontconfig:fonts.dtd",
+              -- подставлять локальный файл /etc/fonts/fonts.dtd
+              fileAssociations = {
+                {
+                  systemId = "urn:fontconfig:fonts.dtd",
+                  uri      = "file:///etc/fonts/fonts.dtd",
+                  pattern  = "**/fonts.conf",
+                },
+              },
+              -- Необязательно: OASIS‑каталоги мы не используем
+              catalogs = {},
+            },
+          },
+        },
+      })
 
-			vim.lsp.config("nixd", {
-				settings = {
-					nixd = {
-						formatting = {
-							command = { "nixfmt" }
-						}
-					},
-				},
-			})
+      vim.lsp.config("nixd", {
+        settings = {
+          nixd = {
+            formatting = {
+              command = { "nixfmt" }
+            }
+          },
+        },
+      })
 
       -- vim.lsp.config("gopls", {
       --   settings = {
@@ -196,54 +197,54 @@ return {
       --   },
       -- })
 
-			vim.lsp.config("yamlls", {
-				settings = {
-					yaml = {
-						validate = true,
-						hover = true,
-						completion = true,
-						format = { enable = false },
-						schemaStore = { enable = true },
-					},
-				},
-			})
+      vim.lsp.config("yamlls", {
+        settings = {
+          yaml = {
+            validate = true,
+            hover = true,
+            completion = true,
+            format = { enable = false },
+            schemaStore = { enable = true },
+          },
+        },
+      })
 
-			vim.lsp.enable({
+      vim.lsp.enable({
         "gopls",
-				"bashls",
-				"hyprls",
-				"lua_ls",
-				"nixd",
-				-- "marksman",
-				"ts_ls",
-				"vue_ls",
-				"eslint",
-				"yamlls",
-			})
+        "bashls",
+        "hyprls",
+        "lua_ls",
+        "nixd",
+        -- "marksman",
+        "ts_ls",
+        "vue_ls",
+        "eslint",
+        "yamlls",
+      })
 
-			vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter' }, {
-				group = vim.api.nvim_create_augroup("HyprlangLsp", { clear = true }),
-				pattern = { "*.hl", "hypr*.conf" },
-				callback = function()
-					vim.lsp.start {
-						name = "hyprlang",
-						cmd = { "hyprls" },
-						root_dir = vim.fn.getcwd(),
-					}
-				end
-			})
+      vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter' }, {
+        group = vim.api.nvim_create_augroup("HyprlangLsp", { clear = true }),
+        pattern = { "*.hl", "hypr*.conf" },
+        callback = function()
+          vim.lsp.start {
+            name = "hyprlang",
+            cmd = { "hyprls" },
+            root_dir = vim.fn.getcwd(),
+          }
+        end
+      })
 
-			vim.api.nvim_create_autocmd("LspAttach", {
-				group = vim.api.nvim_create_augroup("DisableLspForTempFiles", { clear = true }),
-				callback = function(args)
-					local buf = args.buf
-					local filepath = vim.api.nvim_buf_get_name(buf)
+      vim.api.nvim_create_autocmd("LspAttach", {
+        group = vim.api.nvim_create_augroup("DisableLspForTempFiles", { clear = true }),
+        callback = function(args)
+          local buf = args.buf
+          local filepath = vim.api.nvim_buf_get_name(buf)
 
-					if filepath:match("^/tmp/nvim") then
-						vim.diagnostic.enable(false, { bufnr = buf })
-					end
-				end,
-			})
-		end,
-	}
+          if filepath:match("^/tmp/nvim") then
+            vim.diagnostic.enable(false, { bufnr = buf })
+          end
+        end,
+      })
+    end,
+  }
 }
