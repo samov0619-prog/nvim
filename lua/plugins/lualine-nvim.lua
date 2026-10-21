@@ -149,6 +149,7 @@ return {
 			local config = {
 				options = {
 					always_show_tabline = false,
+					disabled_filetypes = { winbar = { 'merge-preview-host' } },
 				},
 				sections = {
           lualine_a = {

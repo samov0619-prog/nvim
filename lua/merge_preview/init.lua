@@ -6,6 +6,8 @@ local memory = require("merge_preview.memory")
 local visual = require("merge_preview.visual")
 local painter = require("merge_preview.diff")
 local scroll = require("merge_preview.scroll")
+local layout = require("merge_preview.layout")
+local panel_highlights = "Normal:Normal,NormalNC:Normal,NormalFloat:Normal,FloatBorder:WinSeparator"
 local views, serial = {}, 0
 local redraw, sync, finish
 
@@ -44,6 +46,7 @@ end
 
 local function panels_intact(s)
   if not api.nvim_tabpage_is_valid(s.tab) then return false end
+  if not api.nvim_win_is_valid(s.host) or api.nvim_win_get_buf(s.host) ~= s.host_buf then return false end
   for _, kind in ipairs({ "ours", "result", "theirs" }) do
     local win, buf = s.windows[kind], s.buffers[kind]
     if not win or not buf or not api.nvim_win_is_valid(win) or not api.nvim_buf_is_loaded(buf)
@@ -187,6 +190,11 @@ redraw = function(s)
     if api.nvim_win_is_valid(win) then
       local label = panel_title(s, kind, pending, changes)
       vim.wo[win].winbar = " " .. label:gsub("%%", "%%%%")
+      if kind == "result" then
+        -- Lualine skips floating windows; keep the native modified title styled.
+        vim.wo[win].winhighlight = panel_highlights
+            .. (vim.bo[s.work].modified and ",WinBar:WarningMsg,WinBarNC:WarningMsg" or "")
+      end
     end
   end
   painter.update(s)
@@ -449,10 +457,11 @@ local function help(s)
     leader .. "cR    Сбросить весь RESULT, включая ручные правки",
     leader .. "cN    Применить все ожидающие неконфликтующие изменения",
     "", "[x / ]x    Предыдущий / следующий нерешённый конфликт",
-    "u / <C-r>  Undo / redo RESULT из любой панели",
+    "u / <C-r>  Undo / redo RESULT",
     ":w         Сохранить рабочий файл (из RESULT), без staging",
     "q          Закрыть merge-вкладку, сохранив решения в рабочем буфере",
     "g?         Эта справка", "",
+    "Ввод и прокрутка — в RESULT; OURS / THEIRS только отображают стороны.",
     "C — решённые конфликты; Δ — принятые неконфликтующие предложения.",
     "! — есть нерешённые конфликты; [+] — рабочий файл не сохранён.",
     "cr / cR возвращают состояние открытия preview; сброс отменяется через u.",
@@ -464,19 +473,10 @@ local function help(s)
   local buf = api.nvim_create_buf(false, true)
   api.nvim_buf_set_lines(buf, 0, -1, false, text)
   vim.bo[buf].bufhidden, vim.bo[buf].modifiable = "wipe", false
-  local width, height = math.min(84, vim.o.columns - 4), math.min(#text, vim.o.lines - 4)
-  s.help = api.nvim_open_win(buf, true, {
-    relative = "editor",
-    style = "minimal",
-    border = "rounded",
-    title = " Merge · g? ",
-    width = width,
-    height = height,
-    row = math.max(0, math.floor((vim.o.lines - height) / 2) - 1),
-    col = math.floor((vim.o.columns - width) / 2),
-  })
+  s.help = api.nvim_open_win(buf, true, layout.help_config(buf))
   local function dismiss()
     if s.help and api.nvim_win_is_valid(s.help) then api.nvim_win_close(s.help, true) end
+    if api.nvim_win_is_valid(s.windows.result) then api.nvim_set_current_win(s.windows.result) end
   end
   for _, key in ipairs({ "q", "<Esc>", "g?" }) do
     vim.keymap.set("n", key, dismiss, { buffer = buf, silent = true })
@@ -562,6 +562,15 @@ finish = function(s)
       end
     end
   end
+  if s.host and api.nvim_win_is_valid(s.host) and api.nvim_win_get_buf(s.host) == s.host_buf then
+    -- Closing the sole split also destroys any unrelated floats in this tab.
+    local ok = #api.nvim_tabpage_list_wins(s.tab) == 1 and pcall(api.nvim_win_close, s.host, true)
+    if not ok then
+      local buf = api.nvim_buf_is_valid(s.work) and s.work or api.nvim_create_buf(true, false)
+      api.nvim_win_set_buf(s.host, buf)
+      for name, value in pairs(s.host_options) do vim.wo[s.host][name] = value end
+    end
+  end
   for _, buf in pairs(s.buffers) do
     if api.nvim_buf_is_valid(buf) then api.nvim_buf_delete(buf, { force = true }) end
   end
@@ -582,11 +591,15 @@ local function create_panels(s, preview, sources)
   local placeholder = api.nvim_get_current_buf()
   views[s.tab] = s
   local filetype = vim.bo[s.work].filetype
+  local window_options = {}
+  for _, name in ipairs({ "number", "relativenumber", "signcolumn", "cursorline", "list" }) do
+    window_options[name] = vim.wo[name]
+  end
+  layout.host(s)
   visual.setup()
-  for i, kind in ipairs({ "ours", "result", "theirs" }) do
-    if i > 1 then vim.cmd("rightbelow vsplit") end
+  for _, kind in ipairs({ "ours", "result", "theirs" }) do
     local buf = api.nvim_create_buf(false, true)
-    s.buffers[kind], s.windows[kind] = buf, api.nvim_get_current_win()
+    s.buffers[kind] = buf
     api.nvim_buf_set_name(buf, "merge-preview://" .. serial .. "/" .. kind .. "/" .. s.name)
     local undo = vim.bo[buf].undolevels
     vim.bo[buf].undolevels = -1
@@ -602,30 +615,36 @@ local function create_panels(s, preview, sources)
     vim.bo[buf].readonly = false
     if kind ~= "result" then vim.bo[buf].modifiable = false end
     vim.diagnostic.enable(false, { bufnr = buf })
-    api.nvim_win_set_buf(0, buf)
-    vim.wo.diff = false
-    vim.wo.scrollbind = false
-    vim.wo.cursorbind = false
-    vim.wo.wrap = false
-    vim.wo.foldenable = false
-    vim.wo.scrolloff = 0
-    vim.wo.statuscolumn = "%!v:lua.require'merge_preview'.statuscolumn()"
-    local function map(lhs, fn) vim.keymap.set("n", lhs, fn, { buffer = buf, silent = true }) end
-    map("<leader>co", function() choose(s, "ours") end)
-    map("<leader>ct", function() choose(s, "theirs") end)
-    map("<leader>cO", function() choose_all(s, "ours") end)
-    map("<leader>cT", function() choose_all(s, "theirs") end)
-    map("<leader>cb", function() choose(s, "both") end)
-    map("<leader>c0", function() choose(s, "base") end)
-    map("<leader>cr", function() reset(s, false) end)
-    map("<leader>cR", function() reset(s, true) end)
-    map("<leader>cN", function() apply_nonconflicting(s) end)
-    map("]x", function() navigate(s, 1) end)
-    map("[x", function() navigate(s, -1) end)
-    map("u", function() replay(s, "u") end)
-    map("<C-r>", function() replay(s, "\18") end)
-    map("q", function() close(s) end)
-    map("g?", function() help(s) end)
+    local win = api.nvim_open_win(buf, false, layout.config(s, kind))
+    s.windows[kind] = win
+    for name, value in pairs(window_options) do vim.wo[win][name] = value end
+    vim.wo[win].diff = false
+    vim.wo[win].scrollbind = false
+    vim.wo[win].cursorbind = false
+    vim.wo[win].wrap = false
+    vim.wo[win].foldenable = false
+    vim.wo[win].scrolloff = 0
+    vim.wo[win].winhighlight = panel_highlights
+    vim.wo[win].statuscolumn = "%!v:lua.require'merge_preview'.statuscolumn()"
+    if kind ~= "result" then vim.wo[win].cursorline = false end
+    if kind == "result" then
+      local function map(lhs, fn) vim.keymap.set("n", lhs, fn, { buffer = buf, silent = true }) end
+      map("<leader>co", function() choose(s, "ours") end)
+      map("<leader>ct", function() choose(s, "theirs") end)
+      map("<leader>cO", function() choose_all(s, "ours") end)
+      map("<leader>cT", function() choose_all(s, "theirs") end)
+      map("<leader>cb", function() choose(s, "both") end)
+      map("<leader>c0", function() choose(s, "base") end)
+      map("<leader>cr", function() reset(s, false) end)
+      map("<leader>cR", function() reset(s, true) end)
+      map("<leader>cN", function() apply_nonconflicting(s) end)
+      map("]x", function() navigate(s, 1) end)
+      map("[x", function() navigate(s, -1) end)
+      map("u", function() replay(s, "u") end)
+      map("<C-r>", function() replay(s, "\18") end)
+      map("q", function() close(s) end)
+      map("g?", function() help(s) end)
+    end
   end
   if api.nvim_buf_is_valid(placeholder) then api.nvim_buf_delete(placeholder, {}) end
   s.result = s.buffers.result
@@ -636,6 +655,7 @@ local function attach_events(s)
   local group = api.nvim_create_augroup("MergePreview" .. serial, { clear = true })
   s.group = group
   scroll.attach(s, group)
+  layout.attach(s, group)
   api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "WinEnter" }, {
     group = group,
     callback = function()
@@ -694,11 +714,13 @@ local function attach_events(s)
           capture_draft(s); queue_finish(s); return
         end
       end
+      if event.buf == s.host_buf then queue_finish(s) end
     end,
   })
   api.nvim_create_autocmd("WinClosed", {
     group = group,
     callback = function(event)
+      if tonumber(event.match) == s.host then queue_finish(s); return end
       for _, win in pairs(s.windows) do
         if tonumber(event.match) == win then
           queue_finish(s); return
@@ -815,7 +837,6 @@ function M.open()
   s.anchor_history[s.last_seq] = vim.deepcopy(initial)
   s.text_history[s.last_seq] = vim.fn.sha256(joined(preview))
   attach_events(s)
-  vim.cmd("wincmd =")
   api.nvim_set_current_win(s.windows.result)
   sync(s) -- Also remember the original definitions before any conflict is edited.
 end

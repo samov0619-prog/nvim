@@ -34,11 +34,8 @@ end
 function M.capture(s)
   if not s.windows or s.aligning or s.closing or s.disposing or s.anchor_error then return end
   local driver = api.nvim_get_current_win()
-  local kind
-  for name, win in pairs(s.windows) do if win == driver then kind = name end end
-  if not kind then return end
+  if driver ~= s.windows.result then return end
   local saved = { driver = driver }
-  if kind ~= "result" then return saved end
   local current = view(driver)
   local cursor, top = current.lnum - 1, current.topline - 1
   local anchor, distance = cursor, math.huge
@@ -72,7 +69,8 @@ function M.restore(s, saved)
 end
 
 function M.align(s, driver)
-  if s.aligning or s.disposing or s.finish_pending or not s.display_ranges or not api.nvim_tabpage_is_valid(s.tab) then return end
+  if s.aligning or s.laying_out or s.disposing or s.finish_pending or not s.display_ranges
+      or not api.nvim_tabpage_is_valid(s.tab) or driver ~= s.windows.result then return end
   for kind, win in pairs(s.windows) do
     if not api.nvim_win_is_valid(win) or api.nvim_win_get_buf(win) ~= s.buffers[kind] then return end
   end
@@ -124,25 +122,13 @@ function M.attach(s, group)
   for _, win in pairs(s.windows) do s.scroll_tops[win] = view(win).topline end
   api.nvim_create_autocmd("WinScrolled", {
     group = group,
-    callback = function(event)
-      if s.aligning or s.busy or s.closing or api.nvim_get_current_tabpage() ~= s.tab then return end
-      local changed, first = {}, nil
-      for _, win in pairs(s.windows) do
-        if api.nvim_win_is_valid(win) then
-          local top = view(win).topline
-          if top ~= s.scroll_tops[win] then changed[win], first = true, first or win end
-          s.scroll_tops[win] = top
-        end
-      end
-      local current, reported = api.nvim_get_current_win(), tonumber(event.match)
-      local driver = changed[current] and current or (changed[reported] and reported or first)
-      if driver then M.align(s, driver) end
-    end,
-  })
-  api.nvim_create_autocmd("WinResized", {
-    group = group,
     callback = function()
-      if not s.closing and api.nvim_get_current_tabpage() == s.tab then M.align(s, api.nvim_get_current_win()) end
+      if s.aligning or s.laying_out or s.busy or s.closing or api.nvim_get_current_tabpage() ~= s.tab then return end
+      local driver = s.windows.result
+      if api.nvim_win_is_valid(driver) then
+        local top = view(driver).topline
+        if top ~= s.scroll_tops[driver] then M.align(s, driver) end
+      end
     end,
   })
 end
