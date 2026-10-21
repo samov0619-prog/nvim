@@ -38,6 +38,9 @@ return {
         group = lint_group,
         callback = function(args)
           local bufnr = args.buf
+          if not vim.api.nvim_buf_is_valid(bufnr) then return end
+          if not vim.api.nvim_buf_is_loaded(bufnr) then return end
+
           local name = vim.api.nvim_buf_get_name(bufnr)
           local ft = vim.bo[bufnr].filetype
           if ft:match("^yaml%.") then ft = "yaml" end
