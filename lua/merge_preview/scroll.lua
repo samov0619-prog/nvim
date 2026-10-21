@@ -8,6 +8,69 @@ local function height(win)
   return math.max(1, api.nvim_win_get_height(win) - (vim.wo[win].winbar ~= "" and 1 or 0))
 end
 
+-- Cursor/extmarks inside one broad replacement cannot identify unchanged
+-- context. Pin it to a model block boundary before changing any buffer text.
+local function pin(s, row)
+  local previous
+  for _, b in ipairs(s.model.blocks) do
+    local r = s.ranges.result[b.id]
+    if row < r.first then return { id = b.id, edge = "first", offset = row - r.first } end
+    if row < r.last or (row == r.first and r.first == r.last) then
+      return { id = b.id, offset = row - r.first }
+    end
+    previous = b.id
+  end
+  return previous and { id = previous, edge = "last", offset = row - s.ranges.result[previous].last }
+      or { offset = row }
+end
+
+local function unpin(s, saved)
+  local r = saved.id and s.ranges.result[saved.id]
+  if not r then return saved.offset end
+  if saved.edge then return r[saved.edge] + saved.offset end
+  return r.first + math.min(saved.offset, math.max(0, r.last - r.first - 1))
+end
+
+function M.capture(s)
+  if not s.windows or s.aligning or s.closing or s.disposing or s.anchor_error then return end
+  local driver = api.nvim_get_current_win()
+  local kind
+  for name, win in pairs(s.windows) do if win == driver then kind = name end end
+  if not kind then return end
+  local saved = { driver = driver }
+  if kind ~= "result" then return saved end
+  local current = view(driver)
+  local cursor, top = current.lnum - 1, current.topline - 1
+  local anchor, distance = cursor, math.huge
+  for _, b in ipairs(s.model.blocks) do
+    if b.kind == "conflict" then
+      local r = s.ranges.result[b.id]
+      if cursor >= r.first and cursor < math.max(r.first + 1, r.last) then
+        anchor = cursor; break
+      end
+      if r.first >= top and r.first < top + height(driver) and math.abs(r.first - cursor) < distance then
+        anchor, distance = r.first, math.abs(r.first - cursor)
+      end
+    end
+  end
+  saved.view, saved.cursor, saved.anchor, saved.screen = current, pin(s, cursor), pin(s, anchor), anchor - top
+  return saved
+end
+
+function M.restore(s, saved)
+  if not saved or s.aligning or s.closing or s.disposing or not api.nvim_win_is_valid(saved.driver) then return end
+  if saved.view then
+    local count = api.nvim_buf_line_count(s.result)
+    saved.view.lnum = math.max(1, math.min(count, unpin(s, saved.cursor) + 1))
+    saved.view.topline = math.max(1, math.min(count, unpin(s, saved.anchor) + 1 - saved.screen))
+    s.aligning = true
+    local ok, err = pcall(api.nvim_win_call, saved.driver, function() vim.fn.winrestview(saved.view) end)
+    s.aligning = false
+    if not ok then vim.notify("Merge preview scroll: " .. tostring(err), vim.log.levels.WARN) end
+  end
+  M.align(s, saved.driver)
+end
+
 function M.align(s, driver)
   if s.aligning or s.disposing or s.finish_pending or not s.display_ranges or not api.nvim_tabpage_is_valid(s.tab) then return end
   for kind, win in pairs(s.windows) do

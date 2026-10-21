@@ -142,6 +142,10 @@ return {
 			local function in_merge_preview()
 				return merge_preview_title() ~= ""
 			end
+			local function merge_preview_color()
+				local preview = package.loaded.merge_preview
+				return preview and preview.modified() and 'WarningMsg' or { gui = 'bold' }
+			end
 			local config = {
 				options = {
 					always_show_tabline = false,
@@ -236,7 +240,7 @@ return {
 				},
 				winbar = {
 					lualine_a = {
-						{ merge_preview_title, cond = in_merge_preview, separator = '', color = { gui = 'bold' } },
+						{ merge_preview_title, cond = in_merge_preview, separator = '', color = merge_preview_color },
 						{
 							-- Функция filename с git интеграцией - использует git модуль
 							function()
@@ -301,7 +305,7 @@ return {
 				},
 				inactive_winbar = {
 					lualine_a = {
-						{ merge_preview_title, cond = in_merge_preview, separator = '', color = { gui = 'bold' } },
+						{ merge_preview_title, cond = in_merge_preview, separator = '', color = merge_preview_color },
 						{
 							'filename',
 							cond = function() return not in_merge_preview() end,

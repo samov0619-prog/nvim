@@ -135,8 +135,21 @@ local function panel_title(s, kind, pending, changes_pending)
     local total, changes = s.model.conflict_count, s.model.change_count
     text = text .. (" · C %d/%d · Δ %d/%d"):format(
       total - (pending or total), total, changes - (changes_pending or changes), changes)
+    if (pending or total) > 0 then
+      text = text .. " !"
+    elseif changes_pending == 0 then
+      text = text .. " ✓"
+    end
+    if vim.bo[s.work].modified then text = text .. " [+]" end
+    if s.detached then text = text .. " [detached]" end
   end
   return text
+end
+
+function M.modified()
+  local win = api.nvim_get_current_win()
+  local s = views[api.nvim_win_get_tabpage(win)]
+  return s and win == s.windows.result and vim.bo[s.work].modified or false
 end
 
 function M.label()
@@ -145,15 +158,7 @@ function M.label()
   if not s then return nil end
   for kind, id in pairs(s.windows) do
     if win == id then
-      local text = panel_title(s, kind, s.remaining, s.changes_remaining)
-      if kind == "result" then
-        if s.remaining == 0 and s.changes_remaining == 0 then
-          text = text .. (vim.bo[s.work].modified and " ! save" or " ✓")
-        end
-        if vim.bo[s.work].modified then text = text .. " ●" end
-        if s.detached then text = text .. " [detached]" end
-      end
-      return text:gsub("%%", "%%%%")
+      return panel_title(s, kind, s.remaining, s.changes_remaining):gsub("%%", "%%%%")
     end
   end
 end
@@ -277,16 +282,15 @@ local function current_block(s)
   return change
 end
 
-local function replace_preview(s, replacements)
-  local before = lines(s.result)
-  local ok, output, ranges = pcall(model_api.replace, s.model, before, result_ranges(s), replacements)
-  if not ok then
-    warn(tostring(output)); return false
-  end
+local function commit_preview(s, before, output, ranges, resolved)
+  local viewport = scroll.capture(s)
   -- busy prevents reentrant sync; editing_result skips manual anchor tracking.
   -- The explicit replacement already computed every anchor from one snapshot.
   s.busy, s.editing_result = true, true
   local success, err = pcall(api.nvim_buf_call, s.result, function()
+    -- Commands from a side pane otherwise keep RESULT's previous undo block
+    -- open, merging separate choices and overwriting their history snapshots.
+    vim.bo[s.result].undolevels = vim.bo[s.result].undolevels
     if vim.deep_equal(before, output) then
       -- Accepting BASE can resolve markers without changing visible text.
       -- Record that explicit decision as an undoable buffer operation too.
@@ -300,8 +304,23 @@ local function replace_preview(s, replacements)
   if not success then
     s.detached = true; warn(tostring(err)); return false
   end
-  for id in pairs(replacements) do s.resolved[id] = true end
-  return sync(s, true)
+  s.resolved = resolved
+  if not sync(s, true) then return false end
+  scroll.restore(s, viewport)
+  return true
+end
+
+local function replace_preview(s, replacements, reset)
+  local before = lines(s.result)
+  local ok, output, ranges = pcall(model_api.replace, s.model, before, result_ranges(s), replacements)
+  if not ok then
+    warn(tostring(output)); return false
+  end
+  local resolved = vim.deepcopy(s.resolved)
+  for id in pairs(replacements) do
+    if reset then resolved[id] = s.initial_resolved[id] else resolved[id] = true end
+  end
+  return commit_preview(s, before, output, ranges, resolved)
 end
 
 local function choose(s, side)
@@ -324,7 +343,43 @@ local function choose(s, side)
     warn("В этих маркерах нет BASE; используй diff3/zdiff3."); return
   end
   if not replace_preview(s, { [b.id] = replacement }) then return end
-  scroll.align(s, api.nvim_get_current_win())
+end
+
+local function choose_all(s, side)
+  if not sync(s) then return end
+  local replacements = {}
+  for _, b in ipairs(s.model.blocks) do
+    if b.kind ~= "change" and not s.resolved[b.id] then
+      replacements[b.id] = b[side]
+    end
+  end
+  if not next(replacements) then return end
+  if not replace_preview(s, replacements) then return end
+end
+
+local function reset(s, all)
+  if not sync(s) then return end
+  if all then
+    local before = lines(s.result)
+    if vim.deep_equal(before, s.initial_preview) and vim.deep_equal(s.resolved, s.initial_resolved)
+        and vim.deep_equal(result_ranges(s), s.initial_ranges) then return end
+    if not commit_preview(s, before, s.initial_preview, s.initial_ranges, vim.deepcopy(s.initial_resolved)) then return end
+  else
+    local b = current_block(s)
+    if not b then
+      warn("Курсор вне блока. Перейди к конфликту или неконфликтующему изменению в RESULT."); return
+    end
+    local r = result_ranges(s)[b.id]
+    if vim.deep_equal(slice(lines(s.result), r.first, r.last), b.seed)
+        and s.resolved[b.id] == s.initial_resolved[b.id] then return end
+    if not replace_preview(s, { [b.id] = b.seed }, true) then return end
+  end
+end
+
+local function replay(s, key)
+  local viewport = scroll.capture(s)
+  api.nvim_buf_call(s.result, function() vim.cmd("normal! " .. key) end)
+  if sync(s) then scroll.restore(s, viewport) end
 end
 
 local function navigate(s, direction)
@@ -386,8 +441,12 @@ local function help(s)
     "Merge editor", "",
     leader .. "co    OURS для текущего конфликта",
     leader .. "ct    THEIRS для текущего конфликта",
+    leader .. "cO    OURS для всех нерешённых конфликтов",
+    leader .. "cT    THEIRS для всех нерешённых конфликтов",
     leader .. "cb    OURS + THEIRS",
     leader .. "c0    Явно оставить BASE в текущем участке",
+    leader .. "cr    Сбросить текущий конфликт / неконфликтующее изменение",
+    leader .. "cR    Сбросить весь RESULT, включая ручные правки",
     leader .. "cN    Применить все ожидающие неконфликтующие изменения",
     "", "[x / ]x    Предыдущий / следующий нерешённый конфликт",
     "u / <C-r>  Undo / redo RESULT из любой панели",
@@ -395,9 +454,11 @@ local function help(s)
     "q          Закрыть merge-вкладку, сохранив решения в рабочем буфере",
     "g?         Эта справка", "",
     "C — решённые конфликты; Δ — принятые неконфликтующие предложения.",
-    "● — рабочий файл не сохранён. RESULT сам по себе не является файлом.",
+    "! — есть нерешённые конфликты; [+] — рабочий файл не сохранён.",
+    "cr / cR возвращают состояние открытия preview; сброс отменяется через u.",
     "При открытии cN можно повторить; ручные решения сохраняются.",
     "Зелёный конфликт можно переиграть: co / ct / cb / c0 в его диапазоне.",
+    "cO / cT сохраняют решения и ручные правки; неконфликтующие — через cN.",
     "", "Esc / q — закрыть справку",
   }
   local buf = api.nvim_create_buf(false, true)
@@ -552,17 +613,17 @@ local function create_panels(s, preview, sources)
     local function map(lhs, fn) vim.keymap.set("n", lhs, fn, { buffer = buf, silent = true }) end
     map("<leader>co", function() choose(s, "ours") end)
     map("<leader>ct", function() choose(s, "theirs") end)
+    map("<leader>cO", function() choose_all(s, "ours") end)
+    map("<leader>cT", function() choose_all(s, "theirs") end)
     map("<leader>cb", function() choose(s, "both") end)
     map("<leader>c0", function() choose(s, "base") end)
+    map("<leader>cr", function() reset(s, false) end)
+    map("<leader>cR", function() reset(s, true) end)
     map("<leader>cN", function() apply_nonconflicting(s) end)
     map("]x", function() navigate(s, 1) end)
     map("[x", function() navigate(s, -1) end)
-    map("u", function()
-      api.nvim_buf_call(s.result, function() vim.cmd("normal! u") end); sync(s)
-    end)
-    map("<C-r>", function()
-      api.nvim_buf_call(s.result, function() vim.cmd("normal! \18") end); sync(s)
-    end)
+    map("u", function() replay(s, "u") end)
+    map("<C-r>", function() replay(s, "\18") end)
     map("q", function() close(s) end)
     map("g?", function() help(s) end)
   end
@@ -719,6 +780,8 @@ function M.open()
     draft = preview,
     observed_result = preview,
     synced_draft = preview,
+    initial_preview = vim.deepcopy(preview),
+    initial_ranges = vim.deepcopy(initial),
     buffers = {},
     windows = {},
     ranges = {},
@@ -746,6 +809,7 @@ function M.open()
     if b.initial_resolved then s.resolved[b.id] = true end
     b.seed = slice(preview, r.first, r.last)
   end
+  s.initial_resolved = vim.deepcopy(s.resolved)
   s.history[sequence(s)] = vim.deepcopy(s.resolved)
   s.last_seq = sequence(s)
   s.anchor_history[s.last_seq] = vim.deepcopy(initial)
