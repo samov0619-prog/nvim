@@ -10,6 +10,7 @@ return {
 		config = function()
 			local mason = require "mason"
 			local mason_lspconfig = require("mason-lspconfig")
+			require("config.mason-fzf-autoclose").setup()
 
 			mason.setup {
 				PATH = "append",
@@ -35,8 +36,6 @@ return {
 						"jsonls",
 						"hyprls",
 						"lua_ls",
-						"stylelint_lsp",
-						-- "marksman",
 						"lemminx",
 						"jdtls",
 						"ts_ls",
@@ -62,11 +61,11 @@ return {
 					"biome",
 					"stylelint",
           "beautysh",
-					"shfmt",
 					"mdformat",
           "markdown-oxide",
 					"js-debug-adapter",
 					"yamllint",
+          "stylelint-language-server",
 				},
 				run_on_start = true,
 				debounce_hours = 5, -- at least 5 hours between attempts to install/update
