@@ -69,10 +69,6 @@ return {
             }
           },
         },
-        winopts = {
-          width = 1,
-          height = 0.9,
-        },
         zoxide = {
           prompt_title = 'Zoxide',
           actions = {
