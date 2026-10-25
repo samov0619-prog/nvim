@@ -59,6 +59,19 @@ return {
         }
       })
 
+      vim.lsp.config("basedpyright", {
+        -- basedpyright discovers the project's .venv itself; explicit project
+        -- interpreter/type-checking settings retain their native precedence.
+        settings = {
+          basedpyright = {
+            analysis = {
+              typeCheckingMode = "standard",
+              diagnosticMode = "openFilesOnly",
+            },
+          },
+        },
+      })
+
       vim.lsp.config("ts_ls", {
         init_options = {
           plugins = {
@@ -273,6 +286,7 @@ return {
 
       vim.lsp.enable({
         "gopls",
+        "basedpyright",
         "bashls",
         "hyprls",
         "lua_ls",

@@ -30,6 +30,7 @@ local function context_key(ctx, bufnr)
   local configs = {}
   for _, tool in ipairs(ctx.linters) do configs[#configs + 1] = stamp(tool.config) end
   if ctx.formatter then configs[#configs + 1] = stamp(ctx.formatter.config) end
+  for _, path in ipairs(ctx.config_files or {}) do configs[#configs + 1] = stamp(path) end
   for _, dir in ipairs(ctx.dirs) do configs[#configs + 1] = stamp(vim.fs.joinpath(dir, ".editorconfig")) end
   local clients = {}
   for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do

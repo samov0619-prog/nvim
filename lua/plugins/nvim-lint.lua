@@ -56,6 +56,7 @@ return {
         stylelint = vim.deepcopy(require("lint.linters.stylelint")),
         yamllint = vim.deepcopy(require("lint.linters.yamllint")),
         phpstan = vim.deepcopy(require("lint.linters.phpstan")),
+        ruff = vim.deepcopy(require("lint.linters.ruff")),
       }
       local extra_args = {
         biomejs = { "--reporter=json", "--max-diagnostics=none" },
@@ -63,6 +64,7 @@ return {
         stylelint = { "--formatter", "json", "--stdin", "--stdin-filename" },
         yamllint = { "--format", "parsable", "-" },
         phpstan = {},
+        ruff = { "--quiet", "--no-fix", "--output-format", "json", "-" },
       }
       local function selected_tool(ctx, id)
         for _, tool in ipairs(ctx.linters) do

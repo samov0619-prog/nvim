@@ -40,6 +40,11 @@ local biome_filetypes = {
 local eslint_filetypes = {
   javascript = true, javascriptreact = true, typescript = true, typescriptreact = true, vue = true,
 }
+local python_markers = {
+  "pyproject.toml", "pyrightconfig.json", "setup.py", "setup.cfg", "requirements.txt", "Pipfile",
+  "ruff.toml", ".ruff.toml",
+}
+local ruff_markers = { ".ruff.toml", "ruff.toml", "pyproject.toml" }
 M.format_filetypes = biome_filetypes
 
 -- Historical buffers stay read-only tooling contexts even outside their view.
@@ -63,7 +68,7 @@ local function parent(dir)
   return up ~= dir and up or nil
 end
 
-local function project_directories(dirname)
+local function project_directories(dirname, ft)
   local dirs, dir = {}, dirname
   local home = vim.uv.os_homedir()
   while dir and dir ~= home and dir ~= "/" do
@@ -72,10 +77,13 @@ local function project_directories(dirname)
     if vim.uv.fs_stat(vim.fs.joinpath(dir, ".git")) then return dirs end
     dir = parent(dir)
   end
-  -- Without Git, the nearest package is the boundary, or just this file's directory.
+  -- Without Git, the nearest language-specific project is the boundary.
+  local markers = ft == "python" and python_markers or { "package.json" }
   for i, candidate in ipairs(dirs) do
-    if vim.fn.filereadable(vim.fs.joinpath(candidate, "package.json")) == 1 then
-      return vim.list_slice(dirs, 1, i)
+    for _, marker in ipairs(markers) do
+      if vim.fn.filereadable(vim.fs.joinpath(candidate, marker)) == 1 then
+        return vim.list_slice(dirs, 1, i)
+      end
     end
   end
   return dirs[1] and { dirs[1] } or {}
@@ -91,14 +99,15 @@ end
 function M.project(bufnr)
   local filename = vim.api.nvim_buf_get_name(bufnr)
   local dirname = filename ~= "" and vim.fs.dirname(filename) or vim.fn.getcwd()
-  local dirs = filename ~= "" and project_directories(dirname) or {}
+  local ft = vim.bo[bufnr].filetype
+  local dirs = filename ~= "" and project_directories(dirname, ft) or {}
   local ctx = {
     filename = filename,
     dirname = dirname,
     dirs = dirs,
     boundary = dirs[#dirs] or dirname,
     packages = {},
-    ft = vim.bo[bufnr].filetype,
+    ft = ft,
     lsp = {},
     linters = {},
   }
@@ -181,9 +190,40 @@ local function bounded_editorconfig(ctx)
   return false
 end
 
+local function python_tools(ctx)
+  local cmd
+  for _, dir in ipairs(ctx.dirs) do
+    local candidate = vim.fs.joinpath(dir, ".venv", "bin", "ruff")
+    if vim.fn.executable(candidate) == 1 then cmd = candidate; break end
+  end
+  cmd = cmd or M.executable("ruff", ctx.dirname, ctx.boundary)
+  local config = find_config(ctx, ruff_markers)
+  local tool = { name = "Ruff", cmd = cmd, cwd = ctx.boundary, config = config and config.path }
+  -- Let Ruff discover its configuration natively: a nearer pyproject.toml
+  -- without [tool.ruff] must not hide an ancestor's Ruff settings.
+  ctx.config_files = {}
+  for _, dir in ipairs(ctx.dirs) do
+    for _, marker in ipairs(ruff_markers) do
+      ctx.config_files[#ctx.config_files + 1] = vim.fs.joinpath(dir, marker)
+    end
+  end
+  ctx.profile = "python"
+  ctx.formatter = vim.tbl_extend("force", tool, {
+    id = "ruff_format", args = { "format", "--stdin-filename", ctx.filename, "-" },
+  })
+  ctx.linter = vim.tbl_extend("force", tool, {
+    id = "ruff", args = { "check", "--force-exclude", "--stdin-filename", ctx.filename },
+    fix_stdout = true,
+    fix_args = { "check", "--fix", "--exit-zero", "--no-unsafe-fixes", "--stdin-filename", ctx.filename, "-" },
+  })
+  ctx.linters[1] = ctx.linter
+  return ctx
+end
+
 function M.resolve(bufnr)
   local ctx = M.project(bufnr)
   if ctx.filename == "" or vim.bo[bufnr].buftype ~= "" then return ctx end
+  if ctx.ft == "python" then return python_tools(ctx) end
   local biome = find_config(ctx, biome_markers)
   local eslint = find_config(ctx, eslint_flat_markers)
       or find_config(ctx, eslint_legacy_markers, "eslintConfig")

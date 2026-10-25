@@ -9,6 +9,7 @@ return {
       end
       local formatters_by_ft = {}
       for ft in pairs(tools.format_filetypes) do formatters_by_ft[ft] = select_formatter end
+      formatters_by_ft.python = select_formatter
       formatters_by_ft.sh = { "beautysh" }
       formatters_by_ft.bash = { "beautysh" }
       formatters_by_ft.zsh = { "beautysh" }
@@ -47,6 +48,7 @@ return {
         formatters = {
           biome = formatter("biome"),
           prettier = formatter("prettier"),
+          ruff_format = formatter("ruff_format"),
           beautysh = { prepend_args = { "--force-function-style", "paronly" } },
           pint = {
             inherit = false,

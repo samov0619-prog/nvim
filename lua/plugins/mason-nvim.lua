@@ -25,9 +25,11 @@ return {
 
       mason_lspconfig.setup(
         {
-          automatic_enable = true,
+          -- Ruff's CLI is owned by Conform/nvim-lint, not a second LSP client.
+          automatic_enable = { exclude = { "ruff" } },
           ensure_installed = {
             "bashls",
+            "basedpyright",
             "cssls",
             "css_variables",
             "cssmodules_ls",
@@ -65,6 +67,7 @@ return {
           "markdown-oxide",
           "js-debug-adapter",
           "yamllint",
+          "ruff",
           "stylelint-language-server",
         },
         run_on_start = true,
