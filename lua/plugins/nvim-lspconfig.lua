@@ -33,16 +33,6 @@ return {
           vim.tbl_extend('force', { buffer = bufnr, desc = "rename" }, opts))
         vim.keymap.set({ "n", "v" }, "<leader>lca", vim.lsp.buf.code_action,
           vim.tbl_extend('force', { buffer = bufnr, desc = "code action" }, opts))
-        vim.keymap.set("n", "<leader>les", function()
-          if #vim.lsp.get_clients({ bufnr = bufnr, name = "eslint" }) == 0 then
-            vim.notify("eslint LSP is not attached", vim.log.levels.WARN)
-            return
-          end
-          vim.lsp.buf.code_action({
-            apply = true,
-            context = { only = { "source.fixAll.eslint" } },
-          })
-        end, vim.tbl_extend('force', { buffer = bufnr, desc = "eslint fix all" }, opts))
         vim.keymap.set("n", "<leader>lrs", function()
           if #vim.lsp.get_clients({ bufnr = bufnr }) == 0 then
             vim.notify("No LSP clients attached", vim.log.levels.WARN)
@@ -93,9 +83,81 @@ return {
         init_options = { vue = { hybridMode = true } },
       })
 
+      local function disable_lint_pull_diagnostics(client)
+        -- The shared scheduler owns diagnostics, including pull-based servers
+        -- and explicit Biome workspace requests for unsaved buffers.
+        client.server_capabilities.diagnosticProvider = nil
+      end
+
+      local tools = require("config.code-tools")
+      local lint_servers = { "biome", "eslint", "stylelint_lsp" }
+      for _, name in ipairs(lint_servers) do
+        vim.lsp.config(name, {
+          -- Automatic diagnostics would duplicate the shared scheduler's results.
+          handlers = { ["textDocument/publishDiagnostics"] = function() end },
+          on_init = disable_lint_pull_diagnostics,
+          root_dir = function(bufnr, on_dir)
+            local tool = tools.resolve(bufnr).lsp[name]
+            if tool then on_dir(tool.cwd) end
+          end,
+        })
+      end
       vim.lsp.config("eslint", {
-        handlers = { ["textDocument/publishDiagnostics"] = function() end },
         filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact", "vue" },
+      })
+      local biome_filetypes = vim.deepcopy(vim.lsp.config.biome.filetypes or {})
+      for ft in pairs(tools.format_filetypes) do
+        if not vim.tbl_contains(biome_filetypes, ft) then biome_filetypes[#biome_filetypes + 1] = ft end
+      end
+      vim.lsp.config("biome", {
+        filetypes = biome_filetypes,
+        handlers = { ["textDocument/publishDiagnostics"] = function(err, params, context)
+          local diagnostics = package.loaded["config.code-diagnostics"]
+          if not err and diagnostics then diagnostics.biome_changed(params, context) end
+        end },
+        cmd = function(dispatchers, config)
+          -- root_dir includes the selected package binary's scope; resolution
+          -- can still reach a hoisted binary within the Git/package boundary.
+          config._code_tools_cmd = assert(tools.executable("biome", config.root_dir), "Biome executable not found")
+          return vim.lsp.rpc.start({ config._code_tools_cmd, "lsp-proxy" }, dispatchers)
+        end,
+        reuse_client = function(client, config)
+          return not client:is_stopped() and tools.biome_client_matches(client, {
+            cwd = config.root_dir, cmd = tools.executable("biome", config.root_dir),
+          })
+        end,
+      })
+
+      local function sync_lint_clients(bufnr)
+        if vim.bo[bufnr].buftype ~= "" or vim.api.nvim_buf_get_name(bufnr) == "" then return end
+        local ctx = tools.resolve(bufnr)
+        for _, name in ipairs(lint_servers) do
+          if vim.lsp.is_enabled(name) then
+            local lsp_config = vim.lsp.config[name]
+            local tool = vim.tbl_contains(lsp_config.filetypes, ctx.ft) and ctx.lsp[name] or nil
+            local attached = false
+            for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr, name = name })) do
+              if tool and client.config.root_dir == tool.cwd
+                  and (name ~= "biome" or tools.biome_client_matches(client, tool)) then
+                attached = true
+              else
+                vim.lsp.buf_detach_client(bufnr, client.id)
+              end
+            end
+            if tool and not attached then
+              local config = vim.deepcopy(lsp_config)
+              config.root_dir = tool.cwd
+              vim.lsp.start(config, { bufnr = bufnr, reuse_client = config.reuse_client })
+            end
+          end
+        end
+      end
+
+      -- Moving/adding a config does not fire FileType again. Keep all lint
+      -- clients in sync so an old profile cannot survive through LSP fallback.
+      vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "FocusGained" }, {
+        group = vim.api.nvim_create_augroup("CodeProjectConfig", { clear = true }),
+        callback = function(args) sync_lint_clients(args.buf) end,
       })
       -- local vue_language_server_path = vim.fn.exepath('vue-language-server')
       --   :gsub('/bin/vue%-language%-server$', '')

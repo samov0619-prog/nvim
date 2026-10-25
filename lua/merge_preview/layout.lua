@@ -15,7 +15,7 @@ function M.host(s)
   for name, value in pairs({
     number = false, relativenumber = false, signcolumn = "no", foldcolumn = "0",
     statuscolumn = "", winbar = "", statusline = "", cursorline = false,
-    cursorcolumn = false, list = false, fillchars = "eob: ",
+    cursorcolumn = false, list = false, spell = false, fillchars = "eob: ",
   }) do
     s.host_options[name] = vim.wo[s.host][name]
     vim.wo[s.host][name] = value

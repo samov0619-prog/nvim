@@ -4,75 +4,94 @@ return {
     -- nixos
     -- enabled = false,
     config = function()
-      local lint = require('lint')
-      local max_file_size = 1024 * 1024
+      local lint = require("lint")
+      local tools = require("config.code-tools")
 
-      local function root(markers) return vim.fs.root(0, markers) or vim.fn.getcwd() end
-      local function has_eslint_config()
-        return vim.fs.root(0, {
-          ".eslintrc", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json",
-          ".eslintrc.yaml", ".eslintrc.yml", "eslint.config.js",
-          "eslint.config.cjs", "eslint.config.mjs", "eslint.config.ts",
-        }) ~= nil
-      end
-      local function has_phpstan_config()
-        return vim.fs.root(0, { "phpstan.neon", "phpstan.neon.dist", "phpstan.dist.neon" }) ~= nil
+      local function parse_biome(output)
+        local diagnostics = {}
+        -- nvim-lint concatenates stdout before stderr for stream="both".
+        -- The JSON reporter emits one line; drain but don't parse stderr's
+        -- experimental-reporter/config warnings as JSON.
+        local json = output:match("^%s*({[^\n]*})") or output
+        local ok, decoded = pcall(vim.json.decode, json)
+        if not ok or type(decoded) ~= "table" or type(decoded.diagnostics) ~= "table" then
+          return { {
+            source = "biomejs",
+            lnum = 0,
+            col = 0,
+            severity = vim.diagnostic.severity.ERROR,
+            message = "Biome check failed: " .. (vim.trim(output) ~= "" and vim.trim(output) or "no JSON output"),
+          } }
+        end
+        local levels = {
+          error = vim.diagnostic.severity.ERROR,
+          fatal = vim.diagnostic.severity.ERROR,
+          warning = vim.diagnostic.severity.WARN,
+          info = vim.diagnostic.severity.INFO,
+          hint = vim.diagnostic.severity.HINT,
+        }
+        for _, d in ipairs(decoded.diagnostics or {}) do
+          local loc = d.location or {}
+          local start = loc.start or {}
+          local finish = loc["end"] or {}
+          table.insert(diagnostics, {
+            source = "biomejs",
+            lnum = (tonumber(start.line) or 1) - 1,
+            col = (tonumber(start.column) or 1) - 1,
+            end_lnum = finish.line and (finish.line - 1) or nil,
+            end_col = finish.column and (finish.column - 1) or nil,
+            message = d.message or "",
+            code = d.category,
+            severity = levels[d.severity] or vim.diagnostic.severity.WARN,
+          })
+        end
+        return diagnostics
       end
 
-      lint.linters.phpstan.cmd = function()
-        return root({ "composer.json", ".git" }) .. "/vendor/bin/phpstan"
-      end
-
-      lint.linters_by_ft = {
-        javascript = { 'eslint_d' },
-        typescript = { 'eslint_d' },
-        javascriptreact = { 'eslint_d' },
-        typescriptreact = { 'eslint_d' },
-        php = { 'phpstan' },
-        yaml = { 'yamllint' },
+      -- Keep the bundled parsers, but resolve commands/config arguments through
+      -- the same project policy used by formatting and fixing.
+      local definitions = {
+        biomejs = { stdin = false, stream = "both", ignore_exitcode = true, parser = parse_biome },
+        eslint_d = vim.deepcopy(require("lint.linters.eslint_d")),
+        stylelint = vim.deepcopy(require("lint.linters.stylelint")),
+        yamllint = vim.deepcopy(require("lint.linters.yamllint")),
+        phpstan = vim.deepcopy(require("lint.linters.phpstan")),
       }
-
-      local lint_group = vim.api.nvim_create_augroup("lint", { clear = true })
-
-      vim.api.nvim_create_autocmd({ "BufEnter", "TextChanged", "InsertLeave", "BufWritePost" }, {
-        group = lint_group,
-        callback = function(args)
-          local bufnr = args.buf
-          if not vim.api.nvim_buf_is_valid(bufnr) then return end
-          if not vim.api.nvim_buf_is_loaded(bufnr) then return end
-
-          local name = vim.api.nvim_buf_get_name(bufnr)
-          local ft = vim.bo[bufnr].filetype
-          if ft:match("^yaml%.") then ft = "yaml" end
-          local linters = lint.linters_by_ft[ft]
-
-          if not linters or name == "" then return end
-
-          -- yamllint читает stdin и может проверять ещё не сохранённый YAML.
-          if ft ~= "yaml" and vim.fn.filereadable(name) ~= 1 then return end
-
-          vim.api.nvim_buf_call(bufnr, function()
-            local stat = vim.uv.fs_stat(name)
-            if stat and stat.size > max_file_size then
-              return
+      local extra_args = {
+        biomejs = { "--reporter=json", "--max-diagnostics=none" },
+        eslint_d = { "--format", "json", "--stdin", "--stdin-filename" },
+        stylelint = { "--formatter", "json", "--stdin", "--stdin-filename" },
+        yamllint = { "--format", "parsable", "-" },
+        phpstan = {},
+      }
+      local function selected_tool(ctx, id)
+        for _, tool in ipairs(ctx.linters) do
+          if tool.id == id then return tool end
+        end
+      end
+      for id, definition in pairs(definitions) do
+        lint.linters[id] = function()
+          local bufnr = vim.api.nvim_get_current_buf()
+          local ctx = tools.resolve(0)
+          local tool = assert(selected_tool(ctx, id), "Linter not selected: " .. id)
+          local linter = vim.deepcopy(definition)
+          linter.cmd, linter.cwd = tool.cmd or id, tool.cwd
+          if tool.env then linter.env = vim.tbl_extend("force", vim.fn.environ(), tool.env) end
+          linter.args = vim.list_extend(vim.deepcopy(tool.args), extra_args[id])
+          if id == "eslint_d" or id == "stylelint" then linter.args[#linter.args + 1] = ctx.filename end
+          linter.parser = function(output, _, cwd)
+            if not vim.api.nvim_buf_is_valid(bufnr) then return {} end
+            local selected = selected_tool(tools.resolve(bufnr), id)
+            if not selected or not vim.deep_equal(selected.args, tool.args) or selected.config ~= tool.config then
+              return {}
             end
+            return definition.parser(output, bufnr, cwd)
+          end
+          return linter
+        end
+      end
 
-            local needs_eslint = vim.tbl_contains(linters, "eslint_d")
-
-            local needs_phpstan = vim.tbl_contains(linters, "phpstan")
-            -- PHPStan запускаем только после сохранения и при наличии конфига.
-            if needs_phpstan and (args.event ~= "BufWritePost" or not has_phpstan_config()) then
-              return
-            end
-            -- если линтер eslint_d, но конфиг не найден — пропускаем
-            if needs_eslint and not has_eslint_config() then
-              return
-            end
-
-            lint.try_lint(linters)
-          end)
-        end,
-      })
-    end
-  }
+      require("config.code-diagnostics").setup()
+    end,
+  },
 }

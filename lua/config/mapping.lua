@@ -98,9 +98,9 @@ vim.keymap.set(
   "n",
   "<leader>dd",
   function()
-    vim.diagnostic.enable(not vim.diagnostic.is_enabled())
+    require("config.code-review").toggle_diagnostics()
   end,
-  described(opts, "toggle diagnostic virtual_lines")
+  described(opts, "toggle diagnostics")
 )
 vim.keymap.set(
   "n",
@@ -116,6 +116,13 @@ vim.keymap.set(
 -- EDIT --
 vim.keymap.set({ 'n', 'v' }, '<leader>y', '"+y', described({ noremap = true, silent = true }, "yank to clipboard"))
 vim.keymap.set({ 'n', 'v' }, '<leader>p', '"+p', described({ noremap = true, silent = true }, "paste from clipboard"))
+
+vim.keymap.set("n", "<leader>cf", function()
+  require("config.code").format_file()
+end, described(opts, "format file"))
+vim.keymap.set("n", "<leader>cx", function()
+  require("config.code").fix_file()
+end, described(opts, "fix file"))
 
 vim.keymap.set('n', '<leader>MY', '"ayy', described({ noremap = true, silent = true }, "clear and add string to @a"))
 vim.keymap.set('n', '<leader>my', '"Ayy', described({ noremap = true, silent = true }, "add string to @a"))
@@ -136,9 +143,9 @@ vim.keymap.set('v', '<C-Backspace>', function()
 end)
 
 -- EDITOR --
-vim.keymap.set("n", "<leader>cl", function() vim.opt.cursorline = not vim.opt.cursorline:get() end,
+vim.keymap.set("n", "<leader>ul", function() vim.opt.cursorline = not vim.opt.cursorline:get() end,
   described(opts, "toggle cursor line"))
-vim.keymap.set("n", "<leader>cc", function() vim.opt.cursorcolumn = not vim.opt.cursorcolumn:get() end,
+vim.keymap.set("n", "<leader>uc", function() vim.opt.cursorcolumn = not vim.opt.cursorcolumn:get() end,
   described(opts, "toggle cursor column"))
-vim.keymap.set("n", "<leader>cfp", function() vim.fn.setreg("+", vim.fn.expand("%:p")) end,
+vim.keymap.set("n", "<leader>fp", function() vim.fn.setreg("+", vim.fn.expand("%:p")) end,
   described(opts, "copy file path"))

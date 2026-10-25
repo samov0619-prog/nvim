@@ -623,6 +623,7 @@ local function create_panels(s, preview, sources)
     s.windows[kind] = win
     for name, value in pairs(window_options) do vim.wo[win][name] = value end
     vim.wo[win].diff = false
+    vim.wo[win].spell = false
     vim.wo[win].scrollbind = false
     vim.wo[win].cursorbind = false
     vim.wo[win].wrap = false
@@ -633,6 +634,8 @@ local function create_panels(s, preview, sources)
     if kind ~= "result" then vim.wo[win].cursorline = false end
     if kind == "result" then
       local function map(lhs, fn) vim.keymap.set("n", lhs, fn, { buffer = buf, silent = true }) end
+      map("<leader>cf", "<Nop>")
+      map("<leader>cx", "<Nop>")
       map("<leader>co", function() choose(s, "ours") end)
       map("<leader>ct", function() choose(s, "theirs") end)
       map("<leader>cO", function() choose_all(s, "ours") end)

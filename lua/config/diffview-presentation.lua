@@ -30,6 +30,7 @@ local function restore(win)
   if vim.api.nvim_win_is_valid(win) then
     if vim.wo[win].winhighlight == state.applied_hl then vim.wo[win].winhighlight = state.hl end
     if vim.wo[win].fillchars == state.applied_fill then vim.wo[win].fillchars = state.fill end
+    if not vim.wo[win].spell then vim.wo[win].spell = state.spell end
   end
   windows[win] = nil
 end
@@ -41,6 +42,7 @@ function M.enter(buf, win, _, customize)
     tab = vim.api.nvim_win_get_tabpage(win),
     hl = vim.wo[win].winhighlight,
     fill = vim.wo[win].fillchars,
+    spell = vim.wo[win].spell,
   }
   local mapping = {}
   for _, item in ipairs(vim.split(state.hl, ",", { trimempty = true })) do
@@ -54,9 +56,10 @@ function M.enter(buf, win, _, customize)
   end
   vim.wo[win].winhighlight = table.concat(mapping, ",")
   vim.api.nvim_win_call(win, function() vim.opt_local.fillchars:append({ diff = " " }) end)
+  vim.wo[win].spell = false
   if customize then customize(win) end
   state.applied_hl, state.applied_fill = vim.wo[win].winhighlight, vim.wo[win].fillchars
-  inherited[state.applied_hl .. "\0" .. state.applied_fill] = { hl = state.hl, fill = state.fill }
+  inherited[state.applied_hl .. "\0" .. state.applied_fill] = { hl = state.hl, fill = state.fill, spell = state.spell }
   windows[win] = state
 end
 
@@ -84,6 +87,7 @@ function M.setup()
         local original = inherited[vim.wo[win].winhighlight .. "\0" .. vim.wo[win].fillchars]
         if original then
           vim.wo[win].winhighlight, vim.wo[win].fillchars = original.hl, original.fill
+          vim.wo[win].spell = original.spell
         end
       end
     end,

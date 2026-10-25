@@ -1,170 +1,76 @@
 return {
   {
-    'stevearc/conform.nvim',
+    "stevearc/conform.nvim",
     config = function()
-      local util = require("conform.util")
-      local project_markers = {
-        "package.json",
-        "tsconfig.json",
-        "biome.json",
-        "biome.jsonc",
-        ".git",
-      }
-
-      -- Проверка наличия конфигурации Biome или корня проекта
-      local function has_biome_context(bufnr)
-        local filename = vim.api.nvim_buf_get_name(bufnr)
-        if filename == "" then return false end
-
-        -- Ищем маркеры проекта вверх по дереву каталогов
-        local root = vim.fs.root(vim.fs.dirname(filename), project_markers)
-        return root ~= nil
+      local tools = require("config.code-tools")
+      local function select_formatter(bufnr)
+        local selected = tools.resolve(bufnr).formatter
+        return selected and selected.cmd and { selected.id } or {}
       end
+      local formatters_by_ft = {}
+      for ft in pairs(tools.format_filetypes) do formatters_by_ft[ft] = select_formatter end
+      formatters_by_ft.sh = { "beautysh" }
+      formatters_by_ft.bash = { "beautysh" }
+      formatters_by_ft.zsh = { "beautysh" }
+      formatters_by_ft.php = { "pint" }
 
-      local function find_biome_config(self, ctx)
-        local project_root = util.root_file(project_markers)(self, ctx)
-
-        if project_root then
-          local project_configs = { "biome.json", "biome.jsonc" }
-          for _, config in ipairs(project_configs) do
-            local config_path = project_root .. "/" .. config
-            if vim.fn.filereadable(config_path) == 1 then
-              return config_path
-            end
-          end
+      local function formatter(id)
+        local function selected(ctx)
+          local tool = tools.resolve(ctx.buf).formatter
+          return tool and tool.id == id and tool or nil
         end
-
-        local home_config = vim.fn.expand("~/biome.jsonc")
-        if vim.fn.filereadable(home_config) == 1 then
-          return home_config
-        end
-
-        return nil
-      end
-
-      local function create_biome_formatter()
         return {
-          command = function(self, ctx)
-            return util.from_node_modules("biome")(self, ctx)
-                or vim.fn.expand("~/.local/share/nvim/mason/bin/biome")
-                or "biome"
+          inherit = false,
+          command = function(_, ctx)
+            local tool = selected(ctx)
+            return tool and tool.cmd or id
           end,
-          args = function(self, ctx)
-            local config_path = find_biome_config(self, ctx)
-            local args = {
-              "format",
-              "--stdin-file-path",
-              ctx.filename,
-            }
-
-            if config_path then
-              table.insert(args, 2, "--config-path")
-              table.insert(args, 3, config_path)
-            end
-
-            return args
+          args = function(_, ctx)
+            local tool = selected(ctx)
+            return tool and tool.args or {}
+          end,
+          cwd = function(_, ctx)
+            local tool = selected(ctx)
+            return tool and tool.cwd or nil
+          end,
+          condition = function(_, ctx)
+            local tool = selected(ctx)
+            return tool ~= nil and tool.cmd ~= nil
           end,
           stdin = true,
-          cwd = function(self, ctx)
-            return util.root_file(project_markers)(self, ctx) or vim.fn.getcwd()
-          end,
         }
-      end
-
-      local prettier_config_names = {
-        ".prettierrc", ".prettierrc.json", ".prettierrc.yml", ".prettierrc.yaml", ".prettierrc.json5",
-        ".prettierrc.js", ".prettierrc.cjs", ".prettierrc.mjs", ".prettierrc.ts", ".prettierrc.cts",
-        ".prettierrc.mts", ".prettierrc.toml", "prettier.config.js", "prettier.config.cjs",
-        "prettier.config.mjs", "prettier.config.ts", "prettier.config.cts", "prettier.config.mts",
-      }
-
-      local function has_prettier_config(bufnr)
-        local filename = vim.api.nvim_buf_get_name(bufnr)
-        if filename == "" then return false end
-        return vim.fs.root(vim.fs.dirname(filename), function(name, path)
-          if vim.tbl_contains(prettier_config_names, name) then return true end
-          if name ~= "package.json" then return false end
-          local ok, package_json = pcall(vim.json.decode, table.concat(vim.fn.readfile(path .. "/package.json"), "\n"))
-          return ok and package_json.prettier ~= nil
-        end) ~= nil
-      end
-
-      -- Динамический выбор форматировщика (Умный Фоллбек)
-      local function smart_fallback_formatter(bufnr)
-        -- 1. Если есть конфиг Prettier — используем его
-        if has_prettier_config(bufnr) and require("conform").get_formatter_info("prettier", bufnr).available then
-          return { "prettier" }
-        end
-
-        -- 2. Если есть окружение для Biome (конфиг или хотя бы .git/package.json) — используем Biome
-        if has_biome_context(bufnr) and require("conform").get_formatter_info("biome", bufnr).available then
-          return { "biome" }
-        end
-
-        -- 3. Если это «голый» одиночный файл (как ваш index.html в пустой папке) — откатываемся на Prettier
-        return { "prettier" }
       end
 
       require("conform").setup({
-        formatters_by_ft = {
-          -- Применяем умный фоллбек ко всем веб-форматам
-          javascript      = smart_fallback_formatter,
-          javascriptreact = smart_fallback_formatter,
-          typescript      = smart_fallback_formatter,
-          typescriptreact = smart_fallback_formatter,
-          json            = smart_fallback_formatter,
-          vue             = smart_fallback_formatter,
-          html            = smart_fallback_formatter,
-          yaml            = { "prettier" },
-
-          css             = { "stylelint" },
-          scss            = { "stylelint" },
-          markdown        = { "mdformat" },
-
-          sh              = { "beautysh" },
-          bash            = { "beautysh" },
-          zsh             = { "beautysh" },
-          php             = { "pint" },
-        },
-
+        default_format_opts = { lsp_format = "fallback" },
+        formatters_by_ft = formatters_by_ft,
         formatters = {
-          beautysh = {
-            prepend_args = {
-              "--force-function-style", "paronly",
-            },
-          },
-          biome = create_biome_formatter(),
+          biome = formatter("biome"),
+          prettier = formatter("prettier"),
+          beautysh = { prepend_args = { "--force-function-style", "paronly" } },
           pint = {
-            command = function(self, ctx)
-              local root = util.root_file({ "composer.json", ".git" })(self, ctx) or vim.fn.getcwd()
-              return root .. "/vendor/bin/pint"
+            inherit = false,
+            command = function(_, ctx)
+              local bin = tools.find_config(ctx.buf, { "vendor/bin/pint" })
+              return bin and bin.path or "pint"
             end,
-            args = { "$FILENAME" },
+            condition = function(_, ctx)
+              local bin = tools.find_config(ctx.buf, { "vendor/bin/pint" })
+              return bin ~= nil and vim.fn.executable(bin.path) == 1
+            end,
+            args = function(_, ctx)
+              local config = tools.find_config(ctx.buf, { "pint.json" })
+              local args = config and { "--config", config.path } or {}
+              return vim.list_extend(args, { "$FILENAME" })
+            end,
+            cwd = function(_, ctx)
+              local config = tools.find_config(ctx.buf, { "composer.json", "pint.json" })
+              return config and config.root or tools.project(ctx.buf).boundary
+            end,
             stdin = false,
-            cwd = function(self, ctx)
-              return util.root_file({ "composer.json", ".git" })(self, ctx) or vim.fn.getcwd()
-            end,
           },
-        }
+        },
       })
-
-      vim.keymap.set({ "n", "v" }, "<leader>lfr", function()
-        require("conform").format(
-          {
-            async = true,
-            timeout_ms = 4000,
-            lsp_format = "fallback",
-          },
-          function(err, _)
-            if not err then
-              local mode = vim.api.nvim_get_mode().mode
-              if vim.startswith(mode, "v") then
-                vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n",
-                  true)
-              end
-            end
-          end)
-      end, { desc = "format range or file" })
-    end
+    end,
   },
 }
