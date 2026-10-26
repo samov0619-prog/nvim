@@ -53,7 +53,7 @@ end
 
 function M.format_file()
   local bufnr = vim.api.nvim_get_current_buf()
-  if tools.in_review(bufnr) then return end
+  if not tools.is_file_buffer(bufnr) or tools.in_review(bufnr) then return end
   if running[bufnr] then
     vim.notify("A code action is already running for this file", vim.log.levels.INFO)
     return
@@ -71,8 +71,7 @@ local function project_fixers(bufnr)
 end
 
 local function same_file(bufnr, filename)
-  return vim.api.nvim_buf_is_valid(bufnr)
-      and vim.api.nvim_buf_is_loaded(bufnr)
+  return tools.is_file_buffer(bufnr)
       and vim.api.nvim_buf_get_name(bufnr) == filename
 end
 
@@ -361,7 +360,7 @@ end
 
 function M.fix_file()
   local bufnr = vim.api.nvim_get_current_buf()
-  if tools.in_review(bufnr) then return end
+  if not tools.is_file_buffer(bufnr) or tools.in_review(bufnr) then return end
   if running[bufnr] then
     vim.notify("A code action is already running for this file", vim.log.levels.INFO)
     return

@@ -47,6 +47,21 @@ local python_markers = {
 local ruff_markers = { ".ruff.toml", "ruff.toml", "pyproject.toml" }
 M.format_filetypes = biome_filetypes
 
+-- Autocommands can outlive their buffer: an earlier nested callback may wipe
+-- it (for example, MiniFiles returning to a previously visited directory).
+-- Use buffer properties rather than a list of plugin-specific filetypes.
+function M.is_file_buffer(bufnr)
+  local api = vim.api
+  if not bufnr or bufnr == 0 then bufnr = api.nvim_get_current_buf() end
+  if not api.nvim_buf_is_valid(bufnr) or not api.nvim_buf_is_loaded(bufnr)
+      or vim.bo[bufnr].buftype ~= "" then return false end
+  local name = api.nvim_buf_get_name(bufnr)
+  if name == "" or name:match("^%a[%w+.-]*://") then return false end
+  local stat = vim.uv.fs_stat(name)
+  -- A missing file is still a valid BufNewFile tooling context.
+  return not stat or stat.type == "file"
+end
+
 -- Historical buffers stay read-only tooling contexts even outside their view.
 -- A local file is a review context only while displayed in the active diff tab.
 function M.in_review(bufnr)
@@ -97,10 +112,11 @@ local function read_package(dir)
 end
 
 function M.project(bufnr)
-  local filename = vim.api.nvim_buf_get_name(bufnr)
+  local valid = vim.api.nvim_buf_is_valid(bufnr)
+  local filename = valid and vim.api.nvim_buf_get_name(bufnr) or ""
   local dirname = filename ~= "" and vim.fs.dirname(filename) or vim.fn.getcwd()
-  local ft = vim.bo[bufnr].filetype
-  local dirs = filename ~= "" and project_directories(dirname, ft) or {}
+  local ft = valid and vim.bo[bufnr].filetype or ""
+  local dirs = M.is_file_buffer(bufnr) and project_directories(dirname, ft) or {}
   local ctx = {
     filename = filename,
     dirname = dirname,
@@ -222,7 +238,7 @@ end
 
 function M.resolve(bufnr)
   local ctx = M.project(bufnr)
-  if ctx.filename == "" or vim.bo[bufnr].buftype ~= "" then return ctx end
+  if not M.is_file_buffer(bufnr) then return ctx end
   if ctx.ft == "python" then return python_tools(ctx) end
   local biome = find_config(ctx, biome_markers)
   local eslint = find_config(ctx, eslint_flat_markers)

@@ -1,6 +1,7 @@
 local M = {}
 local api = vim.api
 local operation = require("config.code-operation")
+local tools = require("config.code-tools")
 
 local function output_lines(output, eol)
   local lines = vim.split(output:gsub("\r\n", "\n"), "\n", { plain = true })
@@ -19,10 +20,10 @@ function M.run(snapshot, opts, callback)
   local function apply(lines)
     if not opts.apply then return end
     local bufnr = snapshot.bufnr
-    if not api.nvim_buf_is_valid(bufnr) or not api.nvim_buf_is_loaded(bufnr)
+    if not tools.is_file_buffer(bufnr)
         or api.nvim_buf_get_name(bufnr) ~= snapshot.filename
         or api.nvim_buf_get_changedtick(bufnr) ~= snapshot.tick
-        or require("config.code-tools").in_review(bufnr) then
+        or tools.in_review(bufnr) then
       error("Formatting cancelled; buffer changed or entered a review view")
     end
     runner.apply_format(bufnr, snapshot.lines, lines, nil, false, false, false)
@@ -114,6 +115,10 @@ function M.run(snapshot, opts, callback)
 end
 
 function M.format_buffer(bufnr, callback)
+  if not tools.is_file_buffer(bufnr) or tools.in_review(bufnr) then
+    callback("Formatting cancelled; not an editable file context")
+    return
+  end
   return M.run({ bufnr = bufnr, filename = api.nvim_buf_get_name(bufnr),
     tick = api.nvim_buf_get_changedtick(bufnr), lines = api.nvim_buf_get_lines(bufnr, 0, -1, false),
     eol = vim.bo[bufnr].endofline, current = function() return true end,

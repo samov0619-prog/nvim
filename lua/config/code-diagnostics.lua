@@ -15,11 +15,7 @@ local function cancel(state)
   state.jobs = {}
 end
 
-local function valid(bufnr)
-  return api.nvim_buf_is_valid(bufnr) and api.nvim_buf_is_loaded(bufnr)
-      and vim.bo[bufnr].buftype == "" and api.nvim_buf_get_name(bufnr) ~= ""
-      and not api.nvim_buf_get_name(bufnr):match("^diffview://")
-end
+local valid = tools.is_file_buffer
 
 local function stamp(path)
   local stat = path and vim.uv.fs_stat(path)

@@ -82,7 +82,7 @@ return {
           linter.args = vim.list_extend(vim.deepcopy(tool.args), extra_args[id])
           if id == "eslint_d" or id == "stylelint" then linter.args[#linter.args + 1] = ctx.filename end
           linter.parser = function(output, _, cwd)
-            if not vim.api.nvim_buf_is_valid(bufnr) then return {} end
+            if not tools.is_file_buffer(bufnr) then return {} end
             local selected = selected_tool(tools.resolve(bufnr), id)
             if not selected or not vim.deep_equal(selected.args, tool.args) or selected.config ~= tool.config then
               return {}

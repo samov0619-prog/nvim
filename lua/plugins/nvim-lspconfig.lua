@@ -8,6 +8,7 @@ return {
       "Bilal2453/luvit-meta"
     },
     config = function()
+      local tools = require("config.code-tools")
       require("lazydev").setup(
         {
           library = {
@@ -48,7 +49,9 @@ return {
       vim.api.nvim_create_autocmd("LspAttach", {
         group = vim.api.nvim_create_augroup("LspKeymaps", { clear = true }),
         callback = function(args)
-          if vim.lsp.get_client_by_id(args.data.client_id) then lsp_on_attach(args.buf) end
+          if tools.is_file_buffer(args.buf) and vim.lsp.get_client_by_id(args.data.client_id) then
+            lsp_on_attach(args.buf)
+          end
         end,
       })
 
@@ -102,7 +105,6 @@ return {
         client.server_capabilities.diagnosticProvider = nil
       end
 
-      local tools = require("config.code-tools")
       local lint_servers = { "biome", "eslint", "stylelint_lsp" }
       for _, name in ipairs(lint_servers) do
         vim.lsp.config(name, {
@@ -110,6 +112,7 @@ return {
           handlers = { ["textDocument/publishDiagnostics"] = function() end },
           on_init = disable_lint_pull_diagnostics,
           root_dir = function(bufnr, on_dir)
+            if not tools.is_file_buffer(bufnr) then return end
             local tool = tools.resolve(bufnr).lsp[name]
             if tool then on_dir(tool.cwd) end
           end,
@@ -142,7 +145,7 @@ return {
       })
 
       local function sync_lint_clients(bufnr)
-        if vim.bo[bufnr].buftype ~= "" or vim.api.nvim_buf_get_name(bufnr) == "" then return end
+        if not tools.is_file_buffer(bufnr) then return end
         local ctx = tools.resolve(bufnr)
         for _, name in ipairs(lint_servers) do
           if vim.lsp.is_enabled(name) then
@@ -284,6 +287,13 @@ return {
         },
       })
 
+      -- Let the enabled hyprls config own attachment, like other native LSPs.
+      -- Preserve the filenames previously handled by the manual BufEnter start.
+      vim.filetype.add({
+        extension = { hl = "hyprlang" },
+        pattern = { [".*/hypr[^/]*%.conf"] = "hyprlang" },
+      })
+
       vim.lsp.enable({
         "gopls",
         "basedpyright",
@@ -298,22 +308,11 @@ return {
         "yamlls",
       })
 
-      vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter' }, {
-        group = vim.api.nvim_create_augroup("HyprlangLsp", { clear = true }),
-        pattern = { "*.hl", "hypr*.conf" },
-        callback = function()
-          vim.lsp.start {
-            name = "hyprlang",
-            cmd = { "hyprls" },
-            root_dir = vim.fn.getcwd(),
-          }
-        end
-      })
-
       vim.api.nvim_create_autocmd("LspAttach", {
         group = vim.api.nvim_create_augroup("DisableLspForTempFiles", { clear = true }),
         callback = function(args)
           local buf = args.buf
+          if not tools.is_file_buffer(buf) then return end
           local filepath = vim.api.nvim_buf_get_name(buf)
 
           if filepath:match("^/tmp/nvim") then
