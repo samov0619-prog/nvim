@@ -76,8 +76,8 @@ return {
           -- end, { buffer = buf, desc = "open file & close" })
 
 
-          -- гарантируем, что :w перехватывается (иначе E382 на не-acwrite буфере).
-          -- если mini сломается — убери эту строку.
+          -- :w requires acwrite. Internal list updates are marked clean below;
+          -- user edits retain modified and keep Neovim's normal quit protection.
           if vim.bo[buf].buftype ~= "acwrite" then
             vim.bo[buf].buftype = "acwrite"
           end
@@ -89,6 +89,17 @@ return {
               require("mini.files").synchronize()
             end,
           })
+        end,
+      })
+
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "MiniFilesBufferUpdate",
+        callback = function(args)
+          -- MiniFiles normally uses nofile and tracks edits itself. With
+          -- acwrite, rendering/synchronizing a listing also sets 'modified'.
+          -- This event only follows an internal content update, not user edits.
+          local buf = args.data.buf_id
+          if vim.api.nvim_buf_is_valid(buf) then vim.bo[buf].modified = false end
         end,
       })
     end,
