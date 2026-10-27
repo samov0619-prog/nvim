@@ -83,6 +83,7 @@ return {
           file_history_panel = { { "n", "gf", goto_file_smart, { desc = "goto file (skip graph)" } } },
         },
       })
+      require("config.diffview-updates").setup()
       vim.keymap.set("n", "<leader>gdo", "<cmd>DiffviewOpen<cr>", { desc = "diffview open" })
       vim.keymap.set("n", "<leader>gdO", "<cmd>DiffviewOpen origin<cr>", { desc = "diffview open origin" })
       vim.keymap.set("n", "<leader>gdu", "<cmd>DiffviewOpen @{u}<cr>", { desc = "diffview upstream" })

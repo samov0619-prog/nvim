@@ -4,6 +4,7 @@ return {
     dependencies = { "nvim-mini/mini.icons" },
     config = function()
       local mf = require("mini.files")
+      require("config.mini-files-lsp").setup(mf)
 
       mf.setup({
         options = {
