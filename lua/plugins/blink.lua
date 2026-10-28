@@ -13,16 +13,13 @@ return {
       snippets = { preset = 'luasnip' },
       completion = {
         ghost_text = {
-          enabled = true,
-          show_with_menu = false,
+          enabled = false,
         },
         list = {
-          selection = { preselect = true, auto_insert = false }
+          selection = { preselect = true, auto_insert = true }
         },
         menu = {
           auto_show = false,
-          -- you may want to set the following options
-          -- completion.menu.auto_show = false -- only show menu on manual <C-space>
           draw = {
             components = {
               label_description = {
@@ -60,10 +57,21 @@ return {
       },
       keymap = {
         ['<C-space>'] = { 'show', 'show_documentation', 'hide_documentation', 'fallback' },
+        ['<Tab>'] = {
+          function(cmp) return require('config.completion').tab(cmp, 1) end,
+          'fallback',
+        },
+        ['<S-Tab>'] = {
+          function(cmp) return require('config.completion').tab(cmp, -1) end,
+          'fallback',
+        },
+        -- With ghost text disabled, these only handle an open menu.
         ['<CR>'] = { 'accept', 'fallback' },
-
-        ['C-n'] = { 'select_next', 'snippet_forward', 'fallback' },
-        ['C-p'] = { 'select_prev', 'snippet_backward', 'fallback' },
+        ['<Esc>'] = { 'cancel', 'fallback' },
+        ['<C-e>'] = false,
+        -- Snippet navigation must not compete with completion or tabout.
+        ['<C-j>'] = { 'snippet_forward', 'fallback' },
+        ['<C-k>'] = { 'snippet_backward', 'fallback' },
       },
       sources = {
         default = { 'lsp', 'path', 'snippets', 'buffer', 'emoji' },
@@ -108,6 +116,10 @@ return {
         }
       }
     },
+    config = function(_, opts)
+      require('blink.cmp').setup(opts)
+      require('config.completion').setup()
+    end,
     opts_extend = { "sources.default" }
   },
   {
