@@ -4,8 +4,9 @@ return {
     dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
     ft = { 'markdown', 'quarto' },
     config = function()
-      require('config.markdown-zebra').setup()
+      local zebra = require('config.markdown-zebra').setup()
       require("render-markdown").setup({
+        custom_handlers = { markdown = zebra },
         render_modes = { 'n', 'i', 'c', 't' },
         anti_conceal = {
           enabled = true,
