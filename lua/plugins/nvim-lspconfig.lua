@@ -75,29 +75,7 @@ return {
         },
       })
 
-      vim.lsp.config("ts_ls", {
-        init_options = {
-          plugins = {
-            {
-              name = "@vue/typescript-plugin",
-              location = vim.fn.stdpath('data') ..
-                  "/mason/packages/vue-language-server/node_modules/@vue/language-server",
-              languages = { "vue" },
-              configNamespace = "typescript",
-            },
-          },
-        },
-        filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact", "vue" },
-      })
-
-      vim.lsp.config("vue_ls", {
-        cmd = {
-          vim.fn.stdpath("data") ..
-          "/mason/packages/vue-language-server/node_modules/@vue/language-server/bin/vue-language-server.js",
-          "--stdio",
-        },
-        init_options = { vue = { hybridMode = true } },
-      })
+      require("config.ts-toolchain").setup()
 
       local function disable_lint_pull_diagnostics(client)
         -- The shared scheduler owns diagnostics, including pull-based servers

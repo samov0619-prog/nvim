@@ -14,6 +14,10 @@ return {
 
       mason.setup {
         PATH = "append",
+        registries = {
+          "lua:config.mason-registry",
+          "github:mason-org/mason-registry",
+        },
         ui = {
           icons = {
             package_installed = "✓",
@@ -53,11 +57,14 @@ return {
   },
   {
     "WhoIsSethDaniel/mason-tool-installer.nvim",
+    dependencies = { "mason-org/mason.nvim" },
     -- for nixos
     -- enabled = false,
     config = function()
       require('mason-tool-installer').setup {
         ensure_installed = {
+          -- Not an lspconfig server name: selected by config.ts-toolchain.
+          { "vue-language-server-vue2", auto_update = false },
           "prettier",
           "eslint_d",
           "biome",

@@ -1,3 +1,4 @@
 plugins_temp/
 *.DS_Store
+ts-toolchains.local.json
 .aider*
