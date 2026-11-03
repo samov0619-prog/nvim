@@ -75,6 +75,53 @@ return {
         },
       })
 
+      vim.lsp.config("rust_analyzer", {
+        cmd = function(dispatchers, config)
+          local rust = require("config.code-rust")
+          local executable = assert(rust.executable("rust-analyzer"), "rust-analyzer unavailable")
+          return vim.lsp.rpc.start({ executable },
+            dispatchers, { cwd = config.root_dir, env = rust.environment() })
+        end,
+        root_dir = function(bufnr, on_dir)
+          if not tools.is_file_buffer(bufnr) then return end
+          local rust = require("config.code-rust")
+          if not rust.executable("rust-analyzer") then
+            vim.notify_once("rust-analyzer is unavailable in the project toolchain", vim.log.levels.WARN)
+            return
+          end
+          local filename = vim.api.nvim_buf_get_name(bufnr)
+          local library_root = rust.library_root(filename)
+          if library_root then on_dir(library_root); return end
+          rust.project(vim.fs.dirname(filename), function(project)
+            if tools.is_file_buffer(bufnr) and vim.api.nvim_buf_get_name(bufnr) == filename then
+              on_dir(project.root)
+            end
+          end)
+        end,
+        -- The upstream config registers a cargo-run command in before_init.
+        -- Keep initialization settings, but do not install build/run handlers.
+        before_init = function(params, config)
+          params.initializationOptions = config.settings["rust-analyzer"]
+          params.capabilities.experimental = params.capabilities.experimental or {}
+          params.capabilities.experimental.commands = { commands = { "rust-analyzer.showReferences" } }
+        end,
+        on_attach = function(_, bufnr)
+          vim.api.nvim_buf_create_user_command(bufnr, "LspExpandMacro", function()
+            require("config.code-rust").expand_macro(bufnr)
+          end, { desc = "Preview macro expansion" })
+        end,
+        settings = {
+          ["rust-analyzer"] = {
+            checkOnSave = true,
+            check = { command = "clippy" },
+            diagnostics = { enable = true },
+            cargo = { buildScripts = { enable = true } },
+            procMacro = { enable = true },
+            lens = { run = { enable = false }, debug = { enable = false }, updateTest = { enable = false } },
+          },
+        },
+      })
+
       require("config.ts-toolchain").setup()
 
       local function disable_lint_pull_diagnostics(client)
@@ -275,6 +322,7 @@ return {
       vim.lsp.enable({
         "gopls",
         "basedpyright",
+        "rust_analyzer",
         "bashls",
         "hyprls",
         "lua_ls",

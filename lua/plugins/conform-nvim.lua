@@ -10,6 +10,11 @@ return {
       local formatters_by_ft = {}
       for ft in pairs(tools.format_filetypes) do formatters_by_ft[ft] = select_formatter end
       formatters_by_ft.python = select_formatter
+      formatters_by_ft.rust = function(bufnr)
+        local selected = select_formatter(bufnr)
+        selected.lsp_format = "never"
+        return selected
+      end
       formatters_by_ft.sh = { "beautysh" }
       formatters_by_ft.bash = { "beautysh" }
       formatters_by_ft.zsh = { "beautysh" }
@@ -36,7 +41,11 @@ return {
           end,
           condition = function(_, ctx)
             local tool = selected(ctx)
-            return tool ~= nil and tool.cmd ~= nil
+            return tool ~= nil and tool.cmd ~= nil and tool.error == nil
+          end,
+          env = function(_, ctx)
+            local tool = selected(ctx)
+            return tool and tool.env or nil
           end,
           stdin = true,
         }
@@ -49,6 +58,7 @@ return {
           biome = formatter("biome"),
           prettier = formatter("prettier"),
           ruff_format = formatter("ruff_format"),
+          rustfmt = formatter("rustfmt"),
           beautysh = { prepend_args = { "--force-function-style", "paronly" } },
           pint = {
             inherit = false,

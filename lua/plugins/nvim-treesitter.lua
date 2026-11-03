@@ -16,7 +16,7 @@ local ensure_installed = {
   "json", "json5", -- jsonc-парсера НЕ существует: ft jsonc -> парсер json
   -- (nvim-treesitter: language.register("json", "jsonc"))
   -- бэк / инфра
-  "php", "phpdoc", "sql", "nix", "dockerfile", "yaml", "toml",
+  "php", "phpdoc", "sql", "nix", "dockerfile", "yaml", "toml", "rust",
   -- git
   "git_config", "git_rebase", "gitcommit", "gitignore",
   -- прочее по мелочи

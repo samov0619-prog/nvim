@@ -117,6 +117,20 @@ function M.project(bufnr)
   local dirname = filename ~= "" and vim.fs.dirname(filename) or vim.fn.getcwd()
   local ft = valid and vim.bo[bufnr].filetype or ""
   local dirs = M.is_file_buffer(bufnr) and project_directories(dirname, ft) or {}
+  local cargo
+  if ft == "rust" and M.is_file_buffer(bufnr) then
+    cargo = require("config.code-rust").project(dirname)
+    dirs = {}
+    local dir = dirname
+    local ancestor_root = dir == cargo.root or vim.startswith(dir, cargo.root .. "/")
+    local stop = ancestor_root and cargo.root or vim.fs.dirname(cargo.manifest or filename)
+    while dir do
+      dirs[#dirs + 1] = dir
+      if dir == stop then break end
+      dir = parent(dir)
+    end
+    if not ancestor_root then dirs[#dirs + 1] = cargo.root end
+  end
   local ctx = {
     filename = filename,
     dirname = dirname,
@@ -126,6 +140,7 @@ function M.project(bufnr)
     ft = ft,
     lsp = {},
     linters = {},
+    cargo = cargo,
   }
   if ctx.ft:match("^yaml%.") then ctx.ft = "yaml" end
   for _, dir in ipairs(dirs) do ctx.packages[dir] = read_package(dir) end
@@ -236,10 +251,35 @@ local function python_tools(ctx)
   return ctx
 end
 
+local function rust_tools(ctx)
+  local rust = require("config.code-rust")
+  local config = find_config(ctx, { "rustfmt.toml", ".rustfmt.toml" })
+  local args = { "--emit=stdout", "--edition=" .. (ctx.cargo.edition or "2021") }
+  -- Without a config, start native discovery beside the source, not at the
+  -- workspace root. An explicit file also preserves nearer crate overrides.
+  if config then vim.list_extend(args, { "--config-path", config.path }) end
+  ctx.profile = "rust"
+  ctx.config_files = vim.deepcopy(ctx.cargo.paths)
+  for _, dir in ipairs(ctx.dirs) do
+    for _, name in ipairs({ "rustfmt.toml", ".rustfmt.toml" }) do
+      ctx.config_files[#ctx.config_files + 1] = vim.fs.joinpath(dir, name)
+    end
+  end
+  local cmd = rust.executable("rustfmt")
+  ctx.formatter = {
+    id = "rustfmt", name = "rustfmt", cmd = cmd, args = args, cwd = ctx.dirname,
+    config = config and config.path, env = rust.environment(),
+    error = ctx.cargo.pending and "Cargo metadata is loading; retry formatting shortly"
+        or ctx.cargo.error or (not cmd and "rustfmt is unavailable in the project toolchain" or nil),
+  }
+  return ctx
+end
+
 function M.resolve(bufnr)
   local ctx = M.project(bufnr)
   if not M.is_file_buffer(bufnr) then return ctx end
   if ctx.ft == "python" then return python_tools(ctx) end
+  if ctx.ft == "rust" then return rust_tools(ctx) end
   local biome = find_config(ctx, biome_markers)
   local eslint = find_config(ctx, eslint_flat_markers)
       or find_config(ctx, eslint_legacy_markers, "eslintConfig")

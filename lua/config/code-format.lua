@@ -35,6 +35,8 @@ function M.run(snapshot, opts, callback)
     op.finish(lines)
   end
   local function start()
+    local tool = tools.resolve(snapshot.bufnr).formatter
+    if tool and tool.error then op.fail(tool.error); return end
     local formatters, lsp = conform.list_formatters_to_run(snapshot.bufnr)
     if #formatters == 0 then
       if not lsp then op.fail("No formatters available for buffer"); return end
@@ -87,7 +89,8 @@ function M.run(snapshot, opts, callback)
       end
       local command = runner.build_cmd(formatter.name, ctx, config)
       local cwd = config.cwd and config.cwd(config, ctx)
-      local env = type(config.env) == "function" and config.env(config, ctx) or config.env
+      local env = config.env
+      if type(env) == "function" then env = env(config, ctx) end
       local source = table.concat(lines, "\n") .. (snapshot.eol and "\n" or "")
       local temporary = not config.stdin and ctx.filename or nil
       local function cleanup() if temporary then vim.fn.delete(temporary) end end

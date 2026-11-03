@@ -189,7 +189,7 @@ function M.setup()
     end,
   })
   api.nvim_create_autocmd("User", {
-    group = group, pattern = { "CodeToolsBusy", "CodeToolsIdle", "CodeFixPost" }, callback = function(args)
+    group = group, pattern = { "CodeToolsBusy", "CodeToolsIdle", "CodeFixPost", "CodeProjectChanged" }, callback = function(args)
       M.refresh(args.data.bufnr, args.match ~= "CodeToolsBusy", 0)
     end,
   })

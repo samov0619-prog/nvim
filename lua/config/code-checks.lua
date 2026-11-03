@@ -46,8 +46,9 @@ function M.format(ctx, snapshot, callback)
   local tool = ctx.formatter
   local source = tool and tool.id or "format"
   local op = operation(snapshot, source, callback)
+  if tool and tool.error then op.fail(tool.error); return op.stop end
   if tool and tool.cmd then
-    op.system(vim.list_extend({ tool.cmd }, tool.args), { cwd = tool.cwd, stdin = snapshot.source }, function(result)
+    op.system(vim.list_extend({ tool.cmd }, tool.args), { cwd = tool.cwd, env = tool.env, stdin = snapshot.source }, function(result)
       if result.code == 0 then op.finish(format_diagnostics(snapshot, result.stdout, source))
       elseif source == "biome" and (result.stderr or ""):find("The file was ignored", 1, true) then op.finish({})
       else op.fail((tool.name or source) .. " check failed: " .. vim.trim(result.stderr .. "\n" .. result.stdout)) end

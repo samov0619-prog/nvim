@@ -316,6 +316,10 @@ local function lsp_fix(bufnr, filename)
           actions[#actions + 1] = action
         end
       end
+      if client.name == "rust_analyzer" and #actions == 0 then
+        vim.notify("rust-analyzer offers no source.fixAll here; use <leader>lca for individual fixes",
+          vim.log.levels.INFO)
+      end
 
       local function run_action(action_index)
         if not unchanged() then return end

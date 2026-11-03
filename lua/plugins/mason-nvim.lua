@@ -30,7 +30,8 @@ return {
       mason_lspconfig.setup(
         {
           -- Ruff's CLI is owned by Conform/nvim-lint, not a second LSP client.
-          automatic_enable = { exclude = { "ruff" } },
+          -- Rust is explicitly enabled with commands from the project toolchain.
+          automatic_enable = { exclude = { "ruff", "rust_analyzer" } },
           ensure_installed = {
             "bashls",
             "basedpyright",
