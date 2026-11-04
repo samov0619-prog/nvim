@@ -73,6 +73,7 @@ return {
           prompt_title = 'Zoxide',
           actions = {
             ["default"] = function(selected)
+              if not selected[1] then return end
               local path = selected[1]:match("[^\t]+$") or selected[1]
               -- path = strip_fyler_prefix(path) -- (maybe backup) zoxide и так даёт чистый путь
               -- Open using fyler API
@@ -85,6 +86,7 @@ return {
               end
             end,
             ["`"] = function(selected, opts)
+              if not selected[1] then return end
               local cwd = selected[1]:match("[^\t]+$") or selected[1]
               -- fix: zoxide отдаёт абсолютные пути; join только для относительных
               if opts.cwd and not vim.startswith(cwd, "/") then
@@ -103,6 +105,7 @@ return {
               end
             end,
             ["~"] = function(selected, opts)
+              if not selected[1] then return end
               local cwd = selected[1]:match("[^\t]+$") or selected[1]
               -- fix: zoxide отдаёт абсолютные пути; join только для относительных
               if opts.cwd and not vim.startswith(cwd, "/") then
