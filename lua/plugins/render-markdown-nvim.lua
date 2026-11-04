@@ -13,12 +13,19 @@ return {
           above = 0,
           below = 0,
         },
+        html = {
+          tag = {
+            details = {},
+            summary = { icon = '▾ ', highlight = 'RenderMarkdownInfo' },
+          },
+        },
         pipe_table = {
           enabled = true,
           cell = 'padded',
           wrap = true,
         },
       })
+      require('config.markdown-viewport').setup()
     end,
   }
 }

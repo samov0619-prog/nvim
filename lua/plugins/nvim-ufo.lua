@@ -40,16 +40,23 @@ return {
       "nvim-treesitter/nvim-treesitter",
     },
     config = function()
+      local details = require("config.markdown-details")
+      details.setup()
       require("ufo").setup({
         close_fold_kinds_for_ft = {
           default = { "imports" },
+          markdown = { "details" },
         },
-        fold_virt_text_handler = handler,
+        close_fold_current_line_for_ft = { markdown = true },
+        fold_virt_text_handler = function(virtText, lnum, endLnum, width, truncate, ctx)
+          return details.fold_text(virtText, lnum, endLnum, width, truncate, ctx, handler)
+        end,
         provider_selector = function(bufnr, filetype, buftype)
           local setting = provider_settings[filetype]
           if setting ~= nil then
             return setting
           end
+          if filetype == "markdown" then return { details.folds, "indent" } end
           return { "treesitter", "indent" }
         end,
       })
