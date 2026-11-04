@@ -1,0 +1,21 @@
+flowchart TB
+  reader[Читатель] --> editor[Neovim / Markdown]
+  editor --> shortcut{Открыть диаграмму}
+  shortcut --> cache{PNG в кэше?}
+  cache -->|Да| preview[Float в Neovim]
+  cache -->|Нет| runtime[Закреплённое окружение]
+  runtime --> browser[Chromium headless]
+  browser --> engine[Официальный Mermaid.js]
+  engine --> png[PNG]
+  png --> disk[(Дисковый кэш)]
+  disk --> shutdown[Завершить браузер]
+  shutdown --> preview
+  preview --> fit[Вписать в окно]
+  preview --> zoom[Масштаб]
+  preview --> pan[Перемещение]
+  preview --> close[Закрыть]
+  engine --> errors[Ошибки синтаксиса]
+  errors --> message[Сообщение в preview]
+  close --> editor
+  zoom --> preview
+  pan --> preview

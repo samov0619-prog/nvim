@@ -2,3 +2,7 @@ plugins_temp/
 *.DS_Store
 ts-toolchains.local.json
 .aider*
+scripts/mermaid-preview/node_modules/
+scripts/mermaid-preview/cache/
+scripts/mermaid-preview/lookup/
+tests/mermaid/__pycache__/

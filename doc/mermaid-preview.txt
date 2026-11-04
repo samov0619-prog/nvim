@@ -1,0 +1,87 @@
+*mermaid-preview.txt*  Official Mermaid preview in a Kitty float
+
+Open with <leader>rd or :MermaidPreview inside a Markdown mermaid fence or a
+.mmd/.mermaid file. Unsaved edits are used. Markdown extraction uses the
+configured Tree-sitter parser, including list/quote fences and literal examples.
+
+Requires local Kitty without tmux, Neovim with LuaJIT FFI and vim.system(),
+Node.js (tested with 24), and a separately installed Chromium/runtime below.
+No image plugin is needed. macOS has a terminal geometry implementation but
+has not been tested end-to-end. Remote terminal/file transport is unsupported.
+
+CONTROLS
+    hjkl / arrow keys    Pan (counts work, e.g. 10l).
+    + / = / -           Zoom in/out, between fit and 8x fit.
+    0                   Fit the entire diagram.
+    q / Esc             Close and cancel any pending render.
+
+Hints appear in the float border. Colors follow NormalFloat/Normal, Identifier,
+Statement and Type. ColorScheme/background changes refresh the open preview.
+An uncached palette requires a new render. This is a raster preview: enlarging
+the PNG beyond its resolution can blur it. It does not change the editor font.
+
+LIFETIME AND CACHE
+One preview is active at a time. Official Mermaid renders PNG in a short-lived
+Chromium process; the browser is closed before the image is displayed. Opening
+a cached source/palette needs no Node or Chromium. Zoom/pan use Kitty cropping,
+without helpers. Source-level Mermaid theme overrides follow the official engine.
+
+The cache key includes source, effective palette, pipeline parameters, dependency
+lockfile, and renderer code. The maximum PNG dimension is 2400 pixels, source
+limit is 256 KiB, and render timeout is 45 seconds. Cancellation uses unique
+request files and awaits browser/profile cleanup. Terminal cleanup errors do
+not prevent removing the float and its autocmd group.
+
+Runtime and cache live under stdpath('data')/mermaid-preview, not in this Git
+repository or /tmp. For this machine that is ~/.local/share/nvim/mermaid-preview.
+Optional vim.g.mermaid_preview_data_dir overrides this directory (set before
+the first preview). Chromium is taken from MERMAID_CHROMIUM, then chromium on
+PATH, then <data>/chromium/bin/chromium. No dependencies are installed on open.
+
+On the tested 17-node diagram, steady viewing added about 1.8 MiB process-tree
+PSS plus separately accounted graphics allocations of about 20-24 MiB. First
+rendering peaked near 653 MiB for Kitty/Neovim/Node/Chromium together. This is
+one measurement, not a bound for arbitrary diagrams. Measurements predate the
+permanent-path integration. Cache eviction and automatic updates are not yet
+implemented; remove cache/lookup subdirectories with the viewer closed if needed.
+
+INSTALLATION / UPDATE
+The current machine reuses the previously downloaded runtime and a Chromium
+link to the Nix store. No system configuration is changed. Such a link is not
+a Nix GC root: if its store path is collected, install Chromium or relink it.
+
+On another machine, install Node.js and Chromium with its package manager.
+From this repository root, these Fish commands install the locked JS runtime:
+>
+    set runtime (nvim -n --headless -u NONE -i NONE '+lua io.write(vim.fn.stdpath("data") .. "/mermaid-preview/runtime")' +qa!)
+    mkdir -p "$runtime"
+    cp scripts/mermaid-preview/package.json scripts/mermaid-preview/package-lock.json "$runtime/"
+    env PUPPETEER_SKIP_DOWNLOAD=true npm ci --prefix "$runtime"
+<
+This downloads npm packages but skips Puppeteer's browser download. Chromium
+must be installed separately. On macOS, set its executable path if necessary:
+>
+    set -gx MERMAID_CHROMIUM /Applications/Chromium.app/Contents/MacOS/Chromium
+<
+Restart Neovim after installation. To update, deliberately change the exact
+package versions and lockfile, repeat the runtime installation, and restart.
+When changing Chromium, update its declared version in
+scripts/mermaid-preview/pipeline.json to invalidate old cached images.
+Network icon packs, dependency updates and portable browser provisioning are
+not managed by this configuration. Treat preview as a local-document workflow,
+not a security sandbox for hostile Mermaid input.
+
+TESTS (no actual Chromium launched)
+    nvim -n --headless -u NONE -i NONE -l tests/mermaid-preview.lua
+    nvim -n --headless -u NONE -i NONE -l tests/mermaid/lifecycle.lua
+    node --test tests/mermaid/browser.mjs
+    node --test tests/mermaid/worker.mjs
+    node tests/mermaid/palette.mjs
+    python3 tests/mermaid/test-tty.py
+
+Browser lifecycle tests mock launch/render/close. Real-browser cancellation at
+every timing and end-to-end macOS operation remain unverified. In headless
+tests, log through stdout before redraw: filling Neovim's message grid with
+multiple print() calls triggered a Neovim 0.12 SIGSEGV in the test harness.
+
+ vim:tw=78:ts=4:ft=help:norl:

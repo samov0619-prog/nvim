@@ -1,0 +1,15 @@
+local root = vim.fn.fnamemodify(debug.getinfo(1, 'S').source:sub(2), ':p:h:h:h')
+vim.opt.rtp:prepend(root)
+local viewer = require('config.mermaid-preview')
+-- Demonstrate the original failure mode in a real detached vim.system child.
+local child = vim.system({ 'python3', '-c', 'import os; os.open("/dev/tty", os.O_RDONLY)' }, { text = true, detach = true }):wait()
+assert(child.code ~= 0 and child.stderr:find('No such device or address', 1, true))
+local size, err = viewer.cell_size()
+assert(size, err)
+assert(size.width == 8 and size.height == 16, vim.inspect(size))
+viewer.send('PROBE_WRITE')
+-- Reloading must not cause FFI redeclaration errors.
+viewer = dofile(root .. '/lua/config/mermaid-preview.lua')
+assert(viewer.cell_size().width == 8)
+print('PASS: detached helper failure reproduced; in-process terminal pixel query and reload succeed')
+vim.cmd('qa!')

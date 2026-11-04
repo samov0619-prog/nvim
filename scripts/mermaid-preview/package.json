@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@mermaid-js/mermaid-cli": "12.2.0",
+    "mermaid": "12.3.0",
+    "puppeteer": "25.16.0"
+  }
+}

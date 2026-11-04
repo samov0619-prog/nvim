@@ -111,6 +111,14 @@ vim.keymap.set(
   described(opts, "show diagnostic list")
 )
 
+-- MERMAID -- (load the viewer only on demand)
+vim.keymap.set('n', '<leader>rd', function()
+  require('config.mermaid-preview').toggle()
+end, described(opts, 'Preview Mermaid diagram'))
+vim.api.nvim_create_user_command('MermaidPreview', function()
+  require('config.mermaid-preview').toggle()
+end, {})
+
 -- COLORTHEME --
 
 -- EDIT --
