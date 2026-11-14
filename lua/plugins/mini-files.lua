@@ -6,7 +6,18 @@ return {
       local mf = require("mini.files")
       require("config.mini-files-lsp").setup(mf)
 
+      local show_dotfiles = false
+      local filter_show = function() return true end
+      local filter_hide = function(entry) return not vim.startswith(entry.name, ".") end
+      local function toggle_dotfiles()
+        show_dotfiles = not show_dotfiles
+        mf.refresh({ content = { filter = show_dotfiles and filter_show or filter_hide } })
+      end
+
       mf.setup({
+        content = {
+          filter = filter_hide,
+        },
         options = {
           use_as_default_explorer = true,
           permanent_delete = true, -- корзина на маке всё равно не работает — удаляем насовсем
@@ -57,6 +68,9 @@ return {
         pattern = "MiniFilesBufferCreate",
         callback = function(args)
           local buf = args.data.buf_id
+
+          vim.keymap.set("n", ".", toggle_dotfiles,
+            { buffer = buf, nowait = true, desc = "Toggle dotfiles" })
 
           vim.keymap.set("n", mf.config.mappings.go_in, function()
             for _ = 1, vim.v.count1 do go_in() end
