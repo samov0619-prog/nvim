@@ -53,13 +53,6 @@ return {
 
       local config = {
         git = {
-          branches = {
-            actions = {
-              ["ctrl-d"] = function(selected)
-                vim.cmd.Git("difftool --name-only " .. selected[1])
-              end,
-            },
-          },
           blame = {
             winopts = {
               preview = {

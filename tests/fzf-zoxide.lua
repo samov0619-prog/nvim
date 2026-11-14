@@ -16,6 +16,8 @@ for _, command in ipairs({ "cd", "tcd" }) do
   vim.cmd[command] = function(opts) calls[#calls + 1] = { command, opts } end
 end
 dofile(root .. "/lua/plugins/fzf-lua.lua")[1].config()
+local branch_actions = config.git.branches and config.git.branches.actions or {}
+assert(not branch_actions["ctrl-d"], "Removed Fugitive Ctrl-D action must not be configured")
 
 for _, key in ipairs({ "default", "`", "~" }) do
   local action = config.zoxide.actions[key]

@@ -4,6 +4,14 @@ local described = M.described
 
 local os_name = vim.uv.os_uname().sysname
 
+-- GIT LINKS --
+vim.keymap.set("n", "<leader>gy", function()
+  require("config.git-link").copy()
+end, described(opts, "copy link to current line"))
+vim.keymap.set("x", "<leader>gy", function()
+  require("config.git-link").copy(true)
+end, described(opts, "copy link to current lines"))
+
 -- TAB PAGES --
 vim.keymap.set('n', '<leader>tn', '<cmd>tabnew<CR>', described(opts, "open new tab page"))
 vim.keymap.set('n', '<leader>tc', '<cmd>tabclose<CR>', described(opts, "close current tab page"))
