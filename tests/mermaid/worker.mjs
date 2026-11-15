@@ -37,3 +37,31 @@ test('worker resolves persistent cache paths without a browser or installed runt
   assert.deepEqual(JSON.parse(await readFile(lookup, 'utf8')), { output });
   await assert.rejects(access(path.join(dir, 'runtime')));
 });
+
+test('worker uses public package entry points from the installed runtime', async t => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'nvim-mermaid-public-entry-test-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const runtime = path.join(dir, 'runtime');
+  await mkdir(runtime);
+  await writeFile(path.join(runtime, 'package.json'), '{}');
+  for (const [name, code] of [
+    ['puppeteer', 'export default { launch: async () => ({ close: async () => {} }) };'],
+    ['@mermaid-js/mermaid-cli', 'export async function renderMermaid() { return { data: Buffer.from("fixture PNG") }; }'],
+  ]) {
+    const location = path.join(runtime, 'node_modules', name);
+    await mkdir(location, { recursive: true });
+    await writeFile(path.join(location, 'package.json'), JSON.stringify({ type: 'module', exports: './public.mjs' }));
+    await writeFile(path.join(location, 'public.mjs'), code);
+  }
+  const input = path.join(dir, 'source.mmd');
+  await writeFile(input, 'flowchart LR\nA --> B');
+  const worker = fileURLToPath(new URL('../../scripts/mermaid-preview/render.mjs', import.meta.url));
+  const result = spawnSync(process.execPath, [worker, input], {
+    encoding: 'utf8', timeout: 5000,
+    env: { ...process.env, MERMAID_DATA_DIR: dir, MERMAID_CHROMIUM: '/fixture/chrome' },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const data = JSON.parse(result.stdout);
+  assert.equal(data.cached, false);
+  assert.equal(await readFile(data.output, 'utf8'), 'fixture PNG');
+});

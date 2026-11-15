@@ -5,7 +5,8 @@ Open with <leader>rd or :MermaidPreview inside a Markdown mermaid fence or a
 configured Tree-sitter parser, including list/quote fences and literal examples.
 
 Requires local Kitty without tmux, Neovim with LuaJIT FFI and vim.system(),
-Node.js (tested with 24), and a separately installed Chromium/runtime below.
+Node.js (tested with 24; locked packages require >=22.13), npm, and an installed
+Chrome/Chromium. The JS runtime installs automatically on first uncached preview.
 No image plugin is needed. macOS has a terminal geometry implementation but
 has not been tested end-to-end. Remote terminal/file transport is unsupported.
 
@@ -13,7 +14,7 @@ CONTROLS
     hjkl / arrow keys    Pan (counts work, e.g. 10l).
     + / = / -           Zoom in/out, between fit and 8x fit.
     0                   Fit the entire diagram.
-    q / Esc             Close and cancel any pending render.
+    q / Esc             Close and cancel pending installation/rendering.
 
 Hints appear in the float border. Colors follow NormalFloat/Normal, Identifier,
 Statement and Type. ColorScheme/background changes refresh the open preview.
@@ -35,8 +36,16 @@ not prevent removing the float and its autocmd group.
 Runtime and cache live under stdpath('data')/mermaid-preview, not in this Git
 repository or /tmp. For this machine that is ~/.local/share/nvim/mermaid-preview.
 Optional vim.g.mermaid_preview_data_dir overrides this directory (set before
-the first preview). Chromium is taken from MERMAID_CHROMIUM, then chromium on
-PATH, then <data>/chromium/bin/chromium. No dependencies are installed on open.
+the first preview). Browser selection checks, in order:
+    - Nonempty MERMAID_CHROMIUM (an invalid override is reported, not ignored).
+    - PATH: chromium, chromium-browser, google-chrome-stable, google-chrome.
+    - On macOS, Google Chrome.app and Chromium.app in /Applications, then
+      ~/Applications, using their Contents/MacOS executable (not the .app folder).
+    - The previously provisioned <data>/chromium/bin/chromium executable.
+An empty override uses automatic discovery. Missing browsers produce an error;
+no browser is downloaded. Cache hits do not require a browser. Installed Chrome
+works through Puppeteer's executablePath, but only its bundled browser version
+is guaranteed compatible upstream; real rendering must verify other versions.
 
 On the tested 17-node diagram, steady viewing added about 1.8 MiB process-tree
 PSS plus separately accounted graphics allocations of about 20-24 MiB. First
@@ -46,39 +55,74 @@ permanent-path integration. Cache eviction and automatic updates are not yet
 implemented; remove cache/lookup subdirectories with the viewer closed if needed.
 
 INSTALLATION / UPDATE
-The current machine reuses the previously downloaded runtime and a Chromium
-link to the Nix store. No system configuration is changed. Such a link is not
-a Nix GC root: if its store path is collected, install Chromium or relink it.
+Use an existing Chrome/Chromium installation; no second browser is needed. Node
+and npm must be on Neovim's PATH. No installation runs at normal editor startup.
+On an uncached preview, the viewer checks the runtime's completion fingerprint
+and required package manifests. Missing/incomplete dependencies or changed
+package.json/package-lock.json trigger automatic setup before rendering:
+    - Copy the repository's manifests into <data>/runtime.
+    - Run npm ci --prefix <data>/runtime --ignore-scripts --no-audit --no-fund
+      --loglevel=info, with PUPPETEER_SKIP_DOWNLOAD=true and cwd=<data>/runtime.
+    - Show installation output in the preview, bounded to the latest 6000 bytes.
+    - Record <data>/runtime/.ready only after success; render automatically.
+The first setup needs network access (or a populated npm cache). Timeout is five
+minutes for setup, separate from the 45-second render timeout. Browser downloads
+and dependency lifecycle scripts are disabled; the locked runtime requires no
+install hook other than Puppeteer's browser downloader. Package imports use
+their public entry points rather than hardcoded internal file paths.
 
-On another machine, install Node.js and Chromium with its package manager.
-From this repository root, these Fish commands install the locked JS runtime:
+q/Esc cancels npm as well as closing the preview. Reopen to retry after a failed
+or cancelled installation. Theme changes during setup do not restart npm; the
+render uses the latest palette. Cached images bypass runtime checks entirely.
+No automatic package version updates occur: deliberately edit the repository's
+versions/lockfile; the next uncached preview installs that exact snapshot.
+
+<data>/runtime-install.lock prevents concurrent npm ci in separate Neovim
+instances. A second installer reports the lock rather than modifying an active
+installation. Normal cancellation/editor exit releases it after npm terminates.
+After a hard crash (e.g. SIGKILL), the lock can remain: verify that no installer
+is running, then remove its pid file and the empty runtime-install.lock directory
+before retrying. Do not remove an active installation lock.
+
+The Node version printed after a module-loading error is not itself evidence of
+a compatibility problem. Node 24 was tested; other versions remain unverified.
+
+If no Chrome or Chromium is installed, on Nix a temporary environment keeps
+the normal Fish configuration; launch Neovim from this shell so it inherits PATH:
 >
-    set runtime (nvim -n --headless -u NONE -i NONE '+lua io.write(vim.fn.stdpath("data") .. "/mermaid-preview/runtime")' +qa!)
-    mkdir -p "$runtime"
-    cp scripts/mermaid-preview/package.json scripts/mermaid-preview/package-lock.json "$runtime/"
-    env PUPPETEER_SKIP_DOWNLOAD=true npm ci --prefix "$runtime"
+    nix shell nixpkgs#chromium --command (status fish-path) --interactive
+    nvim /path/to/diagram.md
 <
-This downloads npm packages but skips Puppeteer's browser download. Chromium
-must be installed separately. On macOS, set its executable path if necessary:
+The Nix command may download or build Chromium; it is a manual setup action,
+not a preview prerequisite check. Existing Chrome Stable is discovered on PATH;
+a permanent Chromium package also works.
+Avoid unrooted links into the Nix store: garbage collection can break them.
+If needed, set MERMAID_CHROMIUM to an installed executable before starting
+Neovim. Standard macOS Chrome/Chromium .app locations are discovered automatically;
+for a nonstandard installation set the path explicitly, for example:
 >
     set -gx MERMAID_CHROMIUM /Applications/Chromium.app/Contents/MacOS/Chromium
 <
-Restart Neovim after installation. To update, deliberately change the exact
-package versions and lockfile, repeat the runtime installation, and restart.
+Start Neovim from an environment that can see the browser, Node and npm.
 When changing Chromium, update its declared version in
 scripts/mermaid-preview/pipeline.json to invalidate old cached images.
 Network icon packs, dependency updates and portable browser provisioning are
 not managed by this configuration. Treat preview as a local-document workflow,
 not a security sandbox for hostile Mermaid input.
 
-TESTS (no actual Chromium launched)
+TESTS (no downloads or actual Chromium launched)
     nvim -n --headless -u NONE -i NONE -l tests/mermaid-preview.lua
     nvim -n --headless -u NONE -i NONE -l tests/mermaid/lifecycle.lua
+    nvim -n --headless -u NONE -i NONE -l tests/mermaid/browser-discovery.lua
+    nvim -n --headless -u NONE -i NONE -l tests/mermaid/runtime.lua
     node --test tests/mermaid/browser.mjs
     node --test tests/mermaid/worker.mjs
     node tests/mermaid/palette.mjs
     python3 tests/mermaid/test-tty.py
 
+Bootstrap tests exercise real filesystem/locking and a local npm executable
+fixture through native process streaming/cancellation, not registry packages.
+Worker tests cover public package resolution using local module fixtures.
 Browser lifecycle tests mock launch/render/close. Real-browser cancellation at
 every timing and end-to-end macOS operation remain unverified. In headless
 tests, log through stdout before redraw: filling Neovim's message grid with

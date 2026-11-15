@@ -24,6 +24,8 @@ local function load()
   local viewer = dofile(repo .. '/lua/config/mermaid-preview.lua')
   viewer.cell_size = function() return { width = 8, height = 16 } end
   viewer.send = function() end
+  viewer.browser_executable = function() return '/fixture/chromium' end
+  viewer.ensure_runtime = function(_, complete) complete() end
   return viewer
 end
 local old = load()

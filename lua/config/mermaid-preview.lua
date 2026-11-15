@@ -110,8 +110,38 @@ local function display(state, file, status)
   vim.schedule(function() draw(state) end)
 end
 
+function M.browser_executable()
+  local override = vim.env.MERMAID_CHROMIUM
+  if override and override ~= '' then
+    local executable = vim.fn.exepath(override)
+    if executable ~= '' then return executable end
+    return nil, 'MERMAID_CHROMIUM is not an executable: ' .. override
+      .. '\nSet it to the Chrome/Chromium executable, not an .app directory.'
+  end
+  local candidates = { 'chromium', 'chromium-browser', 'google-chrome-stable', 'google-chrome' }
+  if vim.fn.has('macunix') == 1 then
+    for _, directory in ipairs({ '/Applications', vim.fn.expand('~/Applications') }) do
+      candidates[#candidates + 1] = directory .. '/Google Chrome.app/Contents/MacOS/Google Chrome'
+      candidates[#candidates + 1] = directory .. '/Chromium.app/Contents/MacOS/Chromium'
+    end
+  end
+  -- Retain the previous explicitly provisioned browser as a last resort.
+  candidates[#candidates + 1] = data .. '/chromium/bin/chromium'
+  for _, candidate in ipairs(candidates) do
+    local executable = vim.fn.exepath(candidate)
+    if executable ~= '' then return executable end
+  end
+  return nil, 'No Chrome/Chromium executable found.\nInstall Chrome or Chromium, or set MERMAID_CHROMIUM to its executable.\nNo browser was downloaded.'
+end
+
+function M.ensure_runtime(progress, complete)
+  return require('config.mermaid-preview.runtime').ensure(root, data, progress, complete)
+end
+
 local function render(state)
   if current ~= state then return end
+  -- A theme change during installation is picked up when setup finishes.
+  if state.setup then return end
   state.request = state.request + 1
   local request = state.request
   if state.job then state.job:kill(15); state.job = nil end
@@ -125,33 +155,48 @@ local function render(state)
     if ok and type(result) == 'table' and type(result.output) == 'string'
       and vim.fn.filereadable(result.output) == 1 then display(state, result.output, 'cache'); return end
   end
-  api.nvim_win_set_config(state.win, { title = ' Mermaid · rendering ' .. palette[1] .. ' theme ' })
-  text(state, 'Rendering official Mermaid for the current Neovim palette…\nChromium exits before display.\nq / Esc: cancel')
-  -- Neovim tempname is unique across module reloads and image-ID wraparound.
-  local prefix = vim.fn.tempname()
-  local input, theme_file = prefix .. '.mmd', prefix .. '.json'
-  vim.fn.writefile(vim.split(state.source, '\n'), input, 'b')
-  vim.fn.writefile({ vim.json.encode(palette) }, theme_file)
-  local chromium = vim.env.MERMAID_CHROMIUM or vim.fn.exepath('chromium')
-  if chromium == '' then chromium = data .. '/chromium/bin/chromium' end
-  local ok, job = pcall(vim.system, { 'node', root .. '/render.mjs', input, '--theme-file', theme_file },
-    { text = true, timeout = 45000, env = { MERMAID_DATA_DIR = data, MERMAID_CHROMIUM = chromium } }, function(result)
-      vim.schedule(function()
-        vim.fn.delete(input)
-        vim.fn.delete(theme_file)
-        if current ~= state or request ~= state.request then return end
-        state.job = nil
-        if result.code ~= 0 then text(state, (result.stderr or 'Renderer failed'):sub(-4000)); return end
-        local parsed, data = pcall(vim.json.decode, vim.trim(result.stdout))
-        if not parsed then text(state, result.stdout); return end
-        display(state, data.output, ('%.1fs · browser stopped'):format(data.ms / 1000))
+  local chromium, browser_error = M.browser_executable()
+  if not chromium then text(state, browser_error); return end
+  state.setup = M.ensure_runtime(function(message)
+    if current ~= state or request ~= state.request then return end
+    api.nvim_win_set_config(state.win, { title = ' Mermaid · installing dependencies ' })
+    text(state, message)
+    api.nvim_win_set_cursor(state.win, { api.nvim_buf_line_count(state.buf), 0 })
+  end, function(setup_error)
+    if current ~= state or request ~= state.request then return end
+    state.setup = nil
+    if setup_error then
+      api.nvim_win_set_config(state.win, { title = ' Mermaid · setup failed ' })
+      text(state, setup_error)
+      return
+    end
+    if M.palette_key(M.palette()) ~= state.theme_key then render(state); return end
+    api.nvim_win_set_config(state.win, { title = ' Mermaid · rendering ' .. palette[1] .. ' theme ' })
+    text(state, 'Rendering official Mermaid for the current Neovim palette…\nChromium exits before display.\nq / Esc: cancel')
+    -- Neovim tempname is unique across module reloads and image-ID wraparound.
+    local prefix = vim.fn.tempname()
+    local input, theme_file = prefix .. '.mmd', prefix .. '.json'
+    vim.fn.writefile(vim.split(state.source, '\n'), input, 'b')
+    vim.fn.writefile({ vim.json.encode(palette) }, theme_file)
+    local ok, job = pcall(vim.system, { 'node', root .. '/render.mjs', input, '--theme-file', theme_file },
+      { text = true, timeout = 45000, env = { MERMAID_DATA_DIR = data, MERMAID_CHROMIUM = chromium } }, function(result)
+        vim.schedule(function()
+          vim.fn.delete(input)
+          vim.fn.delete(theme_file)
+          if current ~= state or request ~= state.request then return end
+          state.job = nil
+          if result.code ~= 0 then text(state, (result.stderr or 'Renderer failed'):sub(-4000)); return end
+          local parsed, data = pcall(vim.json.decode, vim.trim(result.stdout))
+          if not parsed then text(state, result.stdout); return end
+          display(state, data.output, ('%.1fs · browser stopped'):format(data.ms / 1000))
+        end)
       end)
-    end)
-  if ok then state.job = job else
-    vim.fn.delete(input)
-    vim.fn.delete(theme_file)
-    text(state, 'Cannot start renderer: ' .. tostring(job))
-  end
+    if ok then state.job = job else
+      vim.fn.delete(input)
+      vim.fn.delete(theme_file)
+      text(state, 'Cannot start renderer: ' .. tostring(job))
+    end
+  end)
 end
 
 function M.close()
@@ -164,6 +209,7 @@ function M.close()
     if not ok then errors[#errors + 1] = tostring(err) end
   end
   if state.job then cleanup(function() state.job:kill(15) end) end
+  if state.setup then cleanup(function() state.setup.cancel() end) end
   cleanup(function() clear(state, true) end)
   if api.nvim_win_is_valid(state.win) then cleanup(function() api.nvim_win_close(state.win, true) end) end
   if state.group then cleanup(function() api.nvim_del_augroup_by_id(state.group) end) end

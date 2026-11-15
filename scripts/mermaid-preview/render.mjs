@@ -2,6 +2,7 @@
 import { readFile, mkdir, access, rename, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { lookupKey, pipeline, pipelineKey, themeOptions } from './palette.mjs';
 import { withBrowser } from './browser.mjs';
@@ -29,8 +30,9 @@ async function main() {
   let hit = false;
   try { await access(output); hit = !process.argv.includes('--force'); } catch {}
   if (!hit) {
-    const { default: puppeteer } = await import(pathToFileURL(path.join(runtime, 'node_modules/puppeteer/lib/puppeteer/puppeteer.js')));
-    const { renderMermaid } = await import(pathToFileURL(path.join(runtime, 'node_modules/@mermaid-js/mermaid-cli/src/index.js')));
+    const resolve = createRequire(path.join(runtime, 'package.json')).resolve;
+    const { default: puppeteer } = await import(pathToFileURL(resolve('puppeteer')));
+    const { renderMermaid } = await import(pathToFileURL(resolve('@mermaid-js/mermaid-cli')));
     const temporary = output + `.${process.pid}.tmp`;
     await withBrowser({
       launch: options => puppeteer.launch(options),

@@ -77,8 +77,12 @@ viewer.close()
 -- Cache misses pass the actual palette; rapid changes cancel earlier work and
 -- its late callback cannot replace the current theme's image or reopen a float.
 local jobs = {}
+local browser_executable = viewer.browser_executable
+viewer.browser_executable = function() return '/fixture/google-chrome-stable' end
+viewer.ensure_runtime = function(_, complete) complete() end
 vim.system = function(cmd, opts, callback)
   assert(cmd[1] == 'node' and cmd[4] == '--theme-file')
+  assert(opts.env.MERMAID_CHROMIUM == '/fixture/google-chrome-stable', 'Pass the resolved browser to the renderer')
   local palette = vim.json.decode(table.concat(readfile(cmd[5]), '\n'))
   assert(palette[2] == viewer.palette()[2])
   local job = { callback = callback, killed = false }
@@ -115,6 +119,7 @@ viewer.send, vim.notify = send, notify
 vim.fn.filereadable, vim.fn.readfile = readable, readfile
 vim.o.background = old_mode
 vim.system = system
+viewer.browser_executable = browser_executable
 print('PASS: real PNG/cache hit, no Node spawn, mappings, resize, cleanup, external close')
 print('PASS: palette cache identity, ColorScheme refresh, themed requests, cancellation, stale palette callbacks')
 print('PASS: closing a displayed PNG still succeeds after terminal failure')
