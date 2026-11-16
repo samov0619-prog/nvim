@@ -88,11 +88,22 @@ assert(#vim.api.nvim_get_autocmds({ event = 'DirChanged', group = 'ZoxideIntegra
 
 local graph = plugin('gitgraph-nvim')
 assert(#graph.keys == 1 and graph.keys[1][1] == '<leader>gp', 'gp is the only dual graph shortcut')
-package.loaded.gitgraph = { draw_dual = action('draw_dual') }
+package.loaded.gitgraph = {
+  draw_dual = function(...)
+    action('draw_dual')(...)
+    vim.cmd('tabnew')
+    vim.cmd('leftabove vsplit')
+  end,
+}
 graph.keys[1][2]()
 assert(vim.deep_equal(calls[#calls], {
   'draw_dual', { commit_info_as_branch_color = true }, { all = true, max_count = 1000 },
 }), 'Keep the existing dual graph options')
+local graph_width = vim.api.nvim_win_get_width(0)
+local text_width = vim.api.nvim_win_get_width(vim.fn.win_getid(vim.fn.winnr('l')))
+assert(graph_width == math.floor((vim.o.columns - 1) / 3), 'Give the graph one third of the available width')
+assert(text_width == vim.o.columns - 1 - graph_width, 'Give commit details the remaining two thirds')
+vim.cmd('tabclose')
 -- Register the declared Lazy key for the prefix checks below.
 vim.keymap.set('n', graph.keys[1][1], graph.keys[1][2])
 local indent

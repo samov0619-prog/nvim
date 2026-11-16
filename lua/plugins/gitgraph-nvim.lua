@@ -52,6 +52,8 @@ return {
         function()
           require('gitgraph').draw_dual({ commit_info_as_branch_color = true },
             { all = true, max_count = 1000 })
+          -- Dual mode leaves focus on the graph; reserve two thirds for commit details.
+          vim.api.nvim_win_set_width(0, math.floor((vim.o.columns - 1) / 3))
         end,
         desc = "graph dual",
       },
