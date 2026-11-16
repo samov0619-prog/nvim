@@ -73,9 +73,14 @@ return {
         ['<CR>'] = { 'accept', 'fallback' },
         ['<Esc>'] = { 'cancel', 'fallback' },
         ['<C-e>'] = false,
-        -- Snippet navigation must not compete with completion or tabout.
-        ['<C-j>'] = { 'snippet_forward', 'fallback' },
-        ['<C-k>'] = { 'snippet_backward', 'fallback' },
+        -- Disable unused preset bindings instead of inheriting them again.
+        ['<C-j>'] = false,
+        ['<C-k>'] = false,
+        ['<C-p>'] = false,
+        ['<C-n>'] = false,
+        ['<C-y>'] = false,
+        ['<C-b>'] = false,
+        ['<C-f>'] = false,
       },
       sources = {
         default = { 'lsp', 'path', 'snippets', 'buffer', 'emoji' },
@@ -104,6 +109,10 @@ return {
       },
       cmdline = {
         completion = {
+          trigger = {
+            -- Accept a directory without automatically opening its children.
+            show_on_x_blocked_trigger_characters = { '/' },
+          },
           menu = {
             auto_show = function(ctx)
               return vim.fn.getcmdtype() == ':' or vim.fn.getcmdtype() == '@'
@@ -116,7 +125,15 @@ return {
           }
         },
         keymap = {
-          ['<CR>'] = { 'accept', 'fallback' }
+          ['<CR>'] = { 'accept', 'fallback' },
+          ['<C-space>'] = false,
+          ['<C-n>'] = false,
+          ['<C-p>'] = false,
+          ['<Right>'] = { 'accept', 'fallback' },
+          ['<Left>'] = false,
+          ['<C-y>'] = false,
+          ['<C-e>'] = false,
+          ['<End>'] = false,
         }
       }
     },

@@ -15,6 +15,8 @@ local function state()
       ghost = cmp.is_ghost_text_visible(),
       count = #cmp.get_items(),
       selected = cmp.get_selected_item_idx(),
+      cmdline = vim.fn.getcmdline(),
+      cwd = vim.fn.getcwd(),
       marks = vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_create_namespace('completion_available'), 0, -1, { details = true }),
     }
   ]])
@@ -44,10 +46,11 @@ local ok, err = xpcall(function()
   lua([[
     local root = ...
     vim.opt.rtp:prepend(root)
-    for _, plugin in ipairs({ 'blink.cmp', 'LuaSnip', 'neotab.nvim', 'nvim-autopairs' }) do
+    for _, plugin in ipairs({ 'blink.cmp', 'LuaSnip', 'nvim-autopairs' }) do
       vim.opt.rtp:append(vim.fn.stdpath('data') .. '/lazy/' .. plugin)
     end
     vim.o.lines, vim.o.columns = 40, 120
+    require('config.float-style').setup()
     vim.o.swapfile, vim.o.backup, vim.o.writebackup = false, false, false
     vim.o.expandtab, vim.o.shiftwidth, vim.o.tabstop = true, 2, 2
     package.preload.completion_fixture = function()
@@ -68,13 +71,10 @@ local ok, err = xpcall(function()
     end
     require('luasnip').setup({})
     require('nvim-autopairs').setup({})
-    local neotab = dofile(root .. '/lua/plugins/neotab-nvim.lua')[1]
-    require('neotab').setup(neotab.opts)
     local blink = dofile(root .. '/lua/plugins/blink.lua')[1]
     blink.opts.sources.default = { 'fixture' }
     blink.opts.sources.providers.fixture = { name = 'Fixture', module = 'completion_fixture', min_keyword_length = 1 }
     blink.opts.fuzzy.sorts = { 'sort_text' }
-    blink.opts.cmdline.enabled = false
     blink.config(nil, blink.opts)
   ]], root)
 
@@ -93,6 +93,16 @@ local ok, err = xpcall(function()
   assert(lua([[return vim.api.nvim_get_hl(0, { name = 'CompletionAvailable', link = false }).underline]]), 'Underline survives theme changes')
   input('<Tab>')
   wait(function(s) return s.menu and s.lines[1] == 'alphabet' end, 'First Tab opens and previews first item')
+  assert(lua([[
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'blink-cmp-menu' then
+        assert(vim.deep_equal(vim.api.nvim_win_get_config(win).border, require('config.float-style').border))
+        assert(vim.wo[win].winhighlight:find('FloatBorder:UserFloatMenuBorder', 1, true))
+        return true
+      end
+    end
+    return false
+  ]]), 'Real Blink menu uses the Unicode frame and its matching menu background')
   assert(#state().marks == 0, 'Marker is hidden while the menu is open')
   input('<Tab>')
   wait(function(s) return s.lines[1] == 'alpine' end, 'Tab previews next item')
@@ -167,15 +177,7 @@ local ok, err = xpcall(function()
   wait(function(s) return s.cursor[2] == 1 and s.count == 0 end, 'No candidates inside empty parentheses')
   input('<Tab>')
   wait(function(s) return s.lines[1] == '( )' end, 'Tab inside parentheses does not tabout')
-  reset('()')
-  input('<Left>')
-  wait(function(s) return s.cursor[2] == 1 end, 'Cursor before closing parenthesis')
-  input('<C-l>')
-  wait(function(s) return s.cursor[2] == 2 end, 'Ctrl-L exits parentheses')
-  assert(state().lines[1] == '()' and state().mode == 'i')
-  input('<C-l>')
-  lua('return true')
-  assert(state().lines[1] == '()', 'Unavailable tabout must not insert indentation')
+  assert(lua([[return vim.fn.maparg('<C-l>', 'i')]]) == '', 'No tabout mapping remains')
 
   reset()
   input('invoke')
@@ -186,12 +188,62 @@ local ok, err = xpcall(function()
   assert(state().menu and state().selected == 1, 'Single candidate stays selected when cycling')
   input('<CR>')
   wait(function(s) return s.lines[1] == 'call(first, second)' and not s.menu end, 'Enter expands snippet')
-  input('<C-j>')
-  wait(function(s) return s.cursor[2] >= 12 end, 'Separate forward snippet navigation')
-  input('<C-k>')
-  wait(function(s) return s.cursor[2] < 12 end, 'Separate backward snippet navigation')
+  for _, key in ipairs({ '<C-j>', '<C-k>', '<C-p>', '<C-n>', '<C-y>', '<C-b>', '<C-f>' }) do
+    assert(lua([[return vim.fn.maparg(..., 'i')]], key) == '', key .. ' must not inherit a Blink preset mapping')
+  end
 
-  print('PASS: completion marker, Tab previews, Enter accept/newline, Esc cancel, indentation, tabout, and snippets')
+  lua([=[vim.api.nvim_feedkeys(vim.keycode([[<C-\><C-n>]]), 'n', false)]=])
+  wait(function(s) return s.mode == 'n' end, 'Return to Normal before testing cmdline')
+  lua([[vim.fn.setreg('a', 'from-register')]])
+  input(':echo "')
+  wait(function(s) return s.mode == 'c' end, 'Enter command line with Blink enabled')
+  input('<C-r>a')
+  assert(lua([[return vim.fn.getcmdline()]]) == 'echo "from-register', 'Native cmdline Ctrl-R still inserts a register')
+  lua([[require('blink.cmp').hide()]])
+  wait(function(s) return not s.menu and not s.ghost end, 'Hide completion before checking native cursor movement')
+  local position = lua([[return vim.fn.getcmdpos()]])
+  input('<Left>')
+  assert(lua([[return vim.fn.getcmdpos()]]) == position - 1, 'Left moves the cmdline cursor instead of selecting completion')
+  input('<Right>')
+  assert(lua([[return vim.fn.getcmdpos()]]) == position, 'Right moves the cmdline cursor instead of selecting completion')
+  for _, key in ipairs({ '<C-space>', '<C-n>', '<C-p>', '<Left>', '<C-y>', '<C-e>', '<End>', '<C-r>' }) do
+    assert(lua([[return vim.fn.maparg(..., 'c')]], key) == '', key .. ' must retain native cmdline behavior')
+  end
+  input('<Esc>')
+  wait(function(s) return s.mode == 'n' end, 'Cancel the test command without executing it')
+
+  local fixture = '/tmp/opencode/nvim-completion-' .. vim.fn.getpid() .. '-' .. vim.uv.hrtime()
+  for _, path in ipairs({ '/after/nested-a', '/after/nested-b', '/doc', '/lua' }) do
+    vim.fn.mkdir(fixture .. path, 'p', 448)
+  end
+  lua([[vim.api.nvim_set_current_dir(...)]], fixture)
+  input(':cd ./')
+  wait(function(s) return s.menu and s.count == 3 end, 'Actual directory completion opens automatically')
+  input('<Right>')
+  wait(function(s) return s.cmdline == 'cd ./after/' and not s.menu and not s.ghost end, 'Right accepts the selected directory without cycling')
+  assert(state().mode == 'c' and state().cwd == fixture, 'Right does not execute :cd')
+  vim.wait(150, function() return false end)
+  assert(not state().menu, 'Accepting after/ must not automatically open nested candidates')
+  input('<Tab>')
+  wait(function(s) return s.menu and s.count == 2 end, 'A fresh Tab opens the next directory level')
+  input('<Tab>')
+  local next_choice = state().cmdline
+  input('<S-Tab>')
+  assert(state().cmdline ~= next_choice, 'Shift-Tab selects the previous directory candidate')
+  input('<Esc>')
+  wait(function(s) return s.mode == 'n' end, 'Cancel the directory navigation case')
+
+  input(':cd ./')
+  wait(function(s) return s.menu and s.count == 3 end, 'Directory menu before Enter acceptance')
+  input('<CR>')
+  wait(function(s) return s.cmdline == 'cd ./after/' and not s.menu and not s.ghost end, 'First Enter accepts and closes the directory menu')
+  assert(state().mode == 'c' and state().cwd == fixture, 'First Enter must not execute :cd')
+  input('<CR>')
+  wait(function(s) return s.mode == 'n' and s.cwd == fixture .. '/after' end, 'Second Enter executes the accepted command')
+
+  print('PASS: completion marker, Tab previews, Enter accept/newline, Esc cancel, indentation, snippet expansion, and released keys')
+  print('PASS: real Blink cmdline keeps native Ctrl-R register insertion and arrow movement')
+  print('PASS: real directory completion, Right acceptance, explicit next-level Tab, and two-stage Enter')
 end, debug.traceback)
 vim.fn.jobstop(child)
 if not ok then error(err) end

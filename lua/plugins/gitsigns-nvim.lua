@@ -25,7 +25,7 @@ return {
 
           vim.keymap.set(
             "n",
-            "<leader>bl",
+            "<leader>gb",
             function()
               gitsigns.blame_line({ full = true })
             end,
@@ -42,29 +42,12 @@ return {
             gitsigns.reset_hunk({ vim.fn.line('.'), vim.fn.line('v') })
           end, { desc = "reset hunk", buffer = bufnr })
           vim.keymap.set('n', '<leader>hS', gitsigns.stage_buffer, { desc = "stage buffer", buffer = bufnr })
-          vim.keymap.set('n', '<leader>hR', gitsigns.reset_buffer, { desc = "reset buffer", buffer = bufnr })
-          vim.keymap.set('n', '<leader>hp', gitsigns.preview_hunk, { desc = "preview hunk", buffer = bufnr })
-          vim.keymap.set('n', '<leader>hi', gitsigns.preview_hunk_inline,
+          vim.keymap.set('n', '<leader>hp', gitsigns.preview_hunk_inline,
             { desc = "preview hunk inline", buffer = bufnr })
-          vim.keymap.set('n', '<leader>hb', function()
-            gitsigns.blame_line({ full = true })
-          end, { desc = "blame line", buffer = bufnr })
           vim.keymap.set('n', '<leader>hd', gitsigns.diffthis, { desc = "diff this", buffer = bufnr })
           vim.keymap.set('n', '<leader>hD', function()
             gitsigns.diffthis('~')
           end, { desc = "diff this ~", buffer = bufnr })
-          vim.keymap.set('n', '<leader>hQ', function() gitsigns.setqflist('all') end,
-            { desc = "set qflist all", buffer = bufnr })
-          vim.keymap.set('n', '<leader>hq', gitsigns.setqflist, { desc = "set qflist", buffer = bufnr })
-
-          -- Toggles
-          vim.keymap.set('n', '<leader>tb', gitsigns.toggle_current_line_blame,
-            { desc = "toggle current line blame", buffer = bufnr })
-          vim.keymap.set('n', '<leader>tw', gitsigns.toggle_word_diff,
-            { desc = "toggle word diff", buffer = bufnr })
-
-          -- Text object
-          vim.keymap.set({ 'o', 'x' }, 'ih', gitsigns.select_hunk, { desc = "select hunk", buffer = bufnr })
         end
       }
     end,

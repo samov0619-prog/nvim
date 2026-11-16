@@ -170,11 +170,11 @@ return {
         }
       end, { desc = "find files in current dir for selection" })
 
-      vim.keymap.set("n", "<leader>fg", function()
+      vim.keymap.set("n", "<leader>z", function()
         fzf.live_grep()
       end, { desc = "find grep through files" })
 
-      vim.keymap.set("v", "<leader>fg", function()
+      vim.keymap.set("v", "<leader>z", function()
         fzf.live_grep {
           search = fzf_utils.get_visual_selection(),
         }
@@ -199,21 +199,9 @@ return {
         vim.cmd [[FzfLua]]
       end, { desc = "find in commands" })
 
-      vim.keymap.set("n", "<leader>fq", function()
-        fzf.quickfix()
-      end, { desc = "find in quickfix" })
-
-      vim.keymap.set("n", "<leader>fQ", function()
-        fzf.quickfix_stack()
-      end, { desc = "find in quickfix stack" })
-
-      vim.keymap.set("n", "<leader>fl", function()
-        fzf.loclist()
-      end, { desc = "find in loc list" })
-
-      vim.keymap.set("n", "<leader>fL", function()
-        fzf.loclist()
-      end, { desc = "find in loc list stack" })
+      vim.keymap.set("n", "<leader>fc", function()
+        require("config.command-palette").open()
+      end, { desc = "find commands by name and description" })
 
       vim.keymap.set("n", "<leader>fs", function()
         fzf.lsp_document_symbols()
@@ -231,10 +219,6 @@ return {
         fzf.diagnostics_workspace()
       end, { desc = "find workspace diagnostics" })
 
-      vim.keymap.set("n", "<leader>fm", function()
-        fzf.marks()
-      end, { desc = "find marks" })
-
       vim.keymap.set("n", "<leader>fh", function()
         fzf.helptags()
       end, { desc = "find help tags" })
@@ -247,7 +231,7 @@ return {
         fzf.buffers()
       end, { desc = "find buffers" })
 
-      vim.keymap.set("n", "<leader>fgs", function()
+      vim.keymap.set("n", "<leader>gs", function()
         fzf.git_status()
       end, { desc = "git status" })
 
@@ -272,15 +256,9 @@ return {
 
       vim.keymap.set(
         "n",
-        "<leader>zxo",
+        "<leader>Z",
         ":FzfLua zoxide<CR>",
         { desc = "zoxide directories" })
-
-      vim.keymap.set("n", "<leader>zxa", function()
-        local buf_path = vim.api.nvim_buf_get_name(0)
-        local dir = vim.fn.fnamemodify(buf_path, ":p:h")
-        add_to_zoxide(dir)
-      end, { desc = "add directory to zoxide" })
 
       vim.api.nvim_create_autocmd("DirChanged", {
         group = vim.api.nvim_create_augroup("ZoxideIntegration", { clear = true }),

@@ -48,14 +48,7 @@ return {
     },
     keys = {
       {
-        "<leader>gph",
-        function()
-          require('gitgraph').draw({}, { all = true, max_count = 1000 })
-        end,
-        desc = "graph",
-      },
-      {
-        "<leader>gpd",
+        "<leader>gp",
         function()
           require('gitgraph').draw_dual({ commit_info_as_branch_color = true },
             { all = true, max_count = 1000 })

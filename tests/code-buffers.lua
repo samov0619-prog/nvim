@@ -1,13 +1,13 @@
 -- Run: nvim -n --headless -u NONE -i NONE -l tests/code-buffers.lua
 local root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 vim.opt.rtp:prepend(root)
-for _, plugin in ipairs({ "mini.files", "mini.icons", "nvim-lspconfig", "conform.nvim", "nvim-lint", "zk-nvim" }) do
+for _, plugin in ipairs({ "mini.files", "mini.icons", "nvim-lspconfig", "conform.nvim", "nvim-lint" }) do
   vim.opt.rtp:append(vim.fn.stdpath("data") .. "/lazy/" .. plugin)
 end
 vim.o.hidden, vim.o.swapfile, vim.o.backup, vim.o.writebackup = true, false, false, false
 vim.o.lines, vim.o.columns = 55, 180
 local api = vim.api
-local directory = vim.fn.tempname()
+local directory = assert(vim.uv.fs_mkdtemp("/tmp/opencode/code-buffers-XXXXXX"))
 vim.fn.mkdir(directory .. "/project", "p")
 vim.fn.writefile({ "original" }, directory .. "/file.txt")
 local function settle() vim.wait(100, function() return false end) end
@@ -59,10 +59,6 @@ end
 -- Native enable validates executable availability before calling start().
 for _, name in ipairs({ "bashls", "hyprls" }) do vim.lsp.config(name, { cmd = { vim.v.progpath } }) end
 vim.lsp.enable({ "bashls", "hyprls" })
-vim.fn.mkdir(directory .. "/notebook/.zk", "p")
-local notebook_buffers = {}
-require("zk.lsp").buf_add = function(bufnr) notebook_buffers[#notebook_buffers + 1] = bufnr end
-dofile(root .. "/lua/plugins/zk-nvim.lua")[1].config()
 local sync = api.nvim_get_autocmds({ group = "CodeProjectConfig", event = "BufEnter" })[1].callback
 local root_dir = vim.lsp.config.eslint.root_dir
 
@@ -72,7 +68,7 @@ for _, case in ipairs({
   { "FzfLua", "terminal" }, { "Quickfix", "quickfix" }, { "Prompt", "prompt" }, { "Help", "help" },
 }) do
   local buf = api.nvim_create_buf(false, true)
-  api.nvim_buf_set_name(buf, directory .. "/notebook/" .. case[1] .. ".sh")
+  api.nvim_buf_set_name(buf, directory .. "/" .. case[1] .. ".sh")
   if case[2] == "terminal" then api.nvim_open_term(buf, {})
   else vim.bo[buf].buftype = case[2] end
   api.nvim_set_current_buf(buf)
@@ -92,13 +88,13 @@ for _, case in ipairs({
   code.format_file(); code.fix_file()
   settle()
   assert(checked == count and not code.is_running(buf), case[1] .. " started code tools")
-  assert(#starts == before and #notebook_buffers == 0, case[1] .. " started an LSP")
+  assert(#starts == before, case[1] .. " started an LSP")
   assert(not tools.resolve(buf).formatter and next(tools.resolve(buf).lsp) == nil)
   api.nvim_buf_delete(buf, { force = true })
   sync({ buf = buf }) -- stale event arguments must also be harmless
   settle()
 end
-print("PASS: UI buffer types are excluded from native/manual LSP, zk, diagnostics, format and fix")
+print("PASS: UI buffer types are excluded from native/manual LSP, diagnostics, format and fix")
 
 for _, name in ipairs({ "diffview://revision/file.js", "fugitive://repo/file.js", "merge-preview://result/file.js" }) do
   local buf = api.nvim_create_buf(false, false)
@@ -118,10 +114,7 @@ vim.cmd.edit(vim.fn.fnameescape(directory .. "/new.js"))
 assert(tools.is_file_buffer() and tools.is_file_buffer(0), "New unsaved files must remain eligible")
 vim.cmd.edit(vim.fn.fnameescape(directory .. "/note.md"))
 vim.bo.filetype = "markdown"
-assert(#notebook_buffers == 0, "Markdown outside a notebook must not start zk")
-vim.cmd.edit(vim.fn.fnameescape(directory .. "/notebook/note.md"))
-vim.bo.filetype = "markdown"
-assert(notebook_buffers[#notebook_buffers] == api.nvim_get_current_buf(), "Normal Markdown must reach zk")
+assert(tools.is_file_buffer(), "Normal Markdown files must remain eligible")
 for _, name in ipairs({ "custom.hl", "hyprland.conf" }) do
   local before = #starts
   vim.cmd.edit(vim.fn.fnameescape(directory .. "/" .. name))
@@ -132,7 +125,7 @@ for _, name in ipairs({ "custom.hl", "hyprland.conf" }) do
   assert(#starts == before + 1 and starts[#starts].name == "hyprls",
     "Only the native hyprls config must start: " .. vim.inspect({ before = before, starts = starts }))
 end
-print("PASS: unsaved files, Markdown notebooks and native Hyprland LSP remain eligible")
+print("PASS: unsaved files, Markdown and native Hyprland LSP remain eligible")
 
 vim.lsp.enable({ "bashls", "hyprls" }, false)
 vim.lsp.start = start

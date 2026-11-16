@@ -125,7 +125,10 @@ return {
           local mf = require("mini.files")
           -- toggle: открыть на директории текущего файла
           if not mf.close() then
-            mf.open(vim.api.nvim_buf_get_name(0))
+            local path = vim.api.nvim_buf_get_name(0)
+            local stat = vim.uv.fs_stat(path)
+            -- Virtual revision/scratch buffers have no filesystem path; use MiniFiles' cwd default.
+            mf.open(stat and (stat.type == 'file' or stat.type == 'directory') and path or nil)
           end
         end,
         desc = "mini.files",

@@ -13,7 +13,6 @@ vim.keymap.set("x", "<leader>gy", function()
 end, described(opts, "copy link to current lines"))
 
 -- TAB PAGES --
-vim.keymap.set('n', '<leader>tn', '<cmd>tabnew<CR>', described(opts, "open new tab page"))
 vim.keymap.set('n', '<leader>tc', '<cmd>tabclose<CR>', described(opts, "close current tab page"))
 
 -- WINDOWS NAVIGATION --
@@ -50,27 +49,6 @@ vim.keymap.set('n', '<leader>scr', function()
   vim.bo.bufhidden = 'wipe'
   vim.bo.swapfile = false
 end, described(opts, "create scratch buffer"))
-
--- TERMINAL --
-vim.keymap.set('n', '<leader>tt', ':belowright sp | terminal<CR> i', described(opts, "open terminal new tab"))
--- Open bottom
-vim.keymap.set('n', '<leader>th', ':belowright sp | terminal<CR> i', described(opts, "open terminal bottom"))
--- Open right
-vim.keymap.set('n', '<leader>tv', ':belowright vsp | terminal<CR> i', described(opts, "open terminal by side"))
--- Open external terminal to wd
-vim.keymap.set('n', '<leader>tx', function()
-  if os_name == "Darwin" then
-    vim.fn.jobstart({ 'open', '-n', '-a', 'Kitty', '--args', '--directory=' .. vim.fn.getcwd() })
-  else
-    vim.fn.system('kitty --directory="' .. vim.fn.getcwd() .. '" &')
-  end
-end, described(opts, "open external terminal"))
--- To normal from (t)
-vim.keymap.set('t', '<C-[>', '<C-\\><C-n>', described(opts, "exit terminal mode"))
--- i_CTRL-R in (t)
-vim.keymap.set('t', '<C-R>', function()
-  return '<C-\\><C-N>"' .. vim.fn.getcharstr() .. 'pi'
-end, described(vim.tbl_extend("force", opts, { expr = true }), "paste register"))
 
 -- DIFF --
 function ToggleDiff()
@@ -110,14 +88,6 @@ vim.keymap.set(
   end,
   described(opts, "toggle diagnostics")
 )
-vim.keymap.set(
-  "n",
-  "<leader>dl",
-  function()
-    vim.diagnostic.setqflist({})
-  end,
-  described(opts, "show diagnostic list")
-)
 
 -- MERMAID -- (load the viewer only on demand)
 vim.keymap.set('n', '<leader>rd', function()
@@ -140,8 +110,6 @@ vim.keymap.set("n", "<leader>cx", function()
   require("config.code").fix_file()
 end, described(opts, "fix file"))
 
-vim.keymap.set('n', '<leader>MY', '"ayy', described({ noremap = true, silent = true }, "clear and add string to @a"))
-vim.keymap.set('n', '<leader>my', '"Ayy', described({ noremap = true, silent = true }, "add string to @a"))
 -- Move current line(s) ---
 vim.keymap.set("n", "<leader>j", ":m .+1<CR>==", described(opts, "move line down"))
 vim.keymap.set("n", "<leader>k", ":m .-2<CR>==", described(opts, "move line up"))
@@ -159,9 +127,5 @@ vim.keymap.set('v', '<C-Backspace>', function()
 end)
 
 -- EDITOR --
-vim.keymap.set("n", "<leader>ul", function() vim.opt.cursorline = not vim.opt.cursorline:get() end,
-  described(opts, "toggle cursor line"))
-vim.keymap.set("n", "<leader>uc", function() vim.opt.cursorcolumn = not vim.opt.cursorcolumn:get() end,
-  described(opts, "toggle cursor column"))
 vim.keymap.set("n", "<leader>fp", function() vim.fn.setreg("+", vim.fn.expand("%:p")) end,
   described(opts, "copy file path"))

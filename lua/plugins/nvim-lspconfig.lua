@@ -26,7 +26,13 @@ return {
           vim.tbl_extend('force', { buffer = bufnr, desc = "go to references" }, opts))
         vim.keymap.set("n", "<space>lgi", vim.lsp.buf.implementation,
           vim.tbl_extend('force', { buffer = bufnr, desc = "go to implementation" }, opts))
-        vim.keymap.set({ "n", "i" }, "<C-s>", vim.lsp.buf.signature_help,
+        vim.keymap.set({ "n", "i" }, "<C-s>", function()
+          -- Some servers (e.g. nixd) do not implement signatures. Recheck at invocation
+          -- so detach and dynamic capability changes cannot leave a noisy stale binding.
+          if #vim.lsp.get_clients({ bufnr = bufnr, method = "textDocument/signatureHelp" }) > 0 then
+            vim.lsp.buf.signature_help()
+          end
+        end,
           vim.tbl_extend('force', { buffer = bufnr, desc = "signature help" }, opts))
         vim.keymap.set({ "n", "i" }, "<C-a>", vim.lsp.buf.hover,
           vim.tbl_extend('force', { buffer = bufnr, desc = "hover" }, opts))

@@ -39,7 +39,6 @@ vim.keymap.set("n", "<Space>", "<Nop>", opts)
 vim.env.LANG = "en_US.UTF-8"
 
 vim.keymap.set('i', '<C-х>', '<C-[>', described(opts, "<C-[>"))
-vim.keymap.set('i', '<C-к>', '<C-r>', described(opts, "<C-r>"))
 
 -- STATUSLINE --
 vim.opt.statusline        = "%{bufnr()} %<%f %h%m%r%=%-14.(%l,%c%V%) %P"

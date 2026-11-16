@@ -52,9 +52,9 @@ return {
       local review = require("config.code-review")
       presentation.setup()
       review.setup()
-      vim.keymap.set("n", "<leader>gdm", function()
+      vim.keymap.set("n", "<leader>gm", function()
         require("merge_preview").open()
-      end, { desc = "Merge: isolated result preview" })
+      end, { desc = "Merge: isolated conflict resolver" })
       require("diffview").setup({
         hooks = {
           diff_buf_win_enter = function(buf, win, ctx)
@@ -84,12 +84,9 @@ return {
         },
       })
       require("config.diffview-updates").setup()
-      vim.keymap.set("n", "<leader>gdo", "<cmd>DiffviewOpen<cr>", { desc = "diffview open" })
-      vim.keymap.set("n", "<leader>gdO", "<cmd>DiffviewOpen origin<cr>", { desc = "diffview open origin" })
-      vim.keymap.set("n", "<leader>gdu", "<cmd>DiffviewOpen @{u}<cr>", { desc = "diffview upstream" })
-      vim.keymap.set("n", "<leader>gdh", "<cmd>DiffviewFileHistory %<cr>", { desc = "diffview file history" })
-      vim.keymap.set("n", "<leader>gdH", "<cmd>DiffviewFileHistory<cr>", { desc = "diffview repository history" })
-      vim.keymap.set("n", "<leader>gdc", "<cmd>DiffviewClose<cr>", { desc = "diffview close" })
+      vim.keymap.set("n", "<leader>gg", "<cmd>DiffviewOpen<cr>", { desc = "git diff overview" })
+      vim.keymap.set("n", "<leader>gO", "<cmd>DiffviewOpen origin<cr>", { desc = "diffview open origin" })
+      vim.keymap.set("n", "<leader>gu", "<cmd>DiffviewOpen @{u}<cr>", { desc = "diffview upstream" })
     end
   },
 }
