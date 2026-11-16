@@ -50,8 +50,10 @@ return {
     config = function()
       local presentation = require("config.diffview-presentation")
       local review = require("config.code-review")
+      local git_review = require("config.git-review")
       presentation.setup()
       review.setup()
+      git_review.setup()
       vim.keymap.set("n", "<leader>gm", function()
         require("merge_preview").open()
       end, { desc = "Merge: isolated conflict resolver" })
@@ -79,7 +81,11 @@ return {
             { "n", "<leader>cf", "<Nop>" },
             { "n", "<leader>cx", "<Nop>" },
           },
-          file_panel         = { { "n", "gf", goto_file_smart, { desc = "goto file (skip graph)" } } },
+          file_panel         = {
+            { "n", "gf", goto_file_smart, { desc = "goto file (skip graph)" } },
+            { "n", "S", git_review.index_action("stage_all"), { desc = "Stage all entries (except PR/MR review)" } },
+            { "n", "U", git_review.index_action("unstage_all"), { desc = "Unstage all entries (except PR/MR review)" } },
+          },
           file_history_panel = { { "n", "gf", goto_file_smart, { desc = "goto file (skip graph)" } } },
         },
       })

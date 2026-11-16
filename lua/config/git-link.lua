@@ -149,4 +149,7 @@ function M.copy(visual)
   vim.notify("Copied: " .. result)
 end
 
+-- Shared remote parsing, including local OpenSSH HostName resolution.
+M.remote_base = remote_base
+
 return M
