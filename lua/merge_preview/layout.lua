@@ -47,7 +47,7 @@ function M.help_config(buf)
   return {
     relative = "editor",
     style = "minimal",
-    border = "rounded",
+    border = require('config.float-style').border,
     zindex = 80,
     title = " Merge · g? ",
     width = width,

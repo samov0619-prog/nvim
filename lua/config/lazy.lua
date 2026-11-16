@@ -17,6 +17,7 @@ vim.opt.rtp:prepend(lazypath)
 
 -- Setup lazy.nvim
 require("lazy").setup({
+  ui = { border = require('config.float-style').border },
   spec = {
     -- import your plugins
     { import = "plugins" },

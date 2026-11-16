@@ -78,7 +78,7 @@ return {
       }
       vim.keymap.set(
         "n",
-        "<leader>gb",
+        "<leader>gB",
         "<cmd>BlameToggle virtual<CR>",
         { desc = "blame file", noremap = true }
       )

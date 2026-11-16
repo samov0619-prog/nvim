@@ -236,7 +236,7 @@ function M.toggle()
   local buf = api.nvim_create_buf(false, true)
   vim.bo[buf].bufhidden, vim.bo[buf].swapfile, vim.bo[buf].filetype = 'wipe', false, 'mermaid_preview'
   local win = api.nvim_open_win(buf, true, vim.tbl_extend('force', layout(), {
-    style = 'minimal', border = 'rounded', title = ' Mermaid · rendering ',
+    style = 'minimal', border = require('config.float-style').border, title = ' Mermaid · rendering ',
     footer = ' hjkl: pan · +/-: zoom · 0: fit · q/Esc: close ', footer_pos = 'center',
   }))
   vim.wo[win].wrap, vim.wo[win].winblend = false, 0

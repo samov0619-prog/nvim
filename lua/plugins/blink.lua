@@ -19,6 +19,7 @@ return {
           selection = { preselect = true, auto_insert = true }
         },
         menu = {
+          winhighlight = 'Normal:BlinkCmpMenu,FloatBorder:UserFloatMenuBorder,CursorLine:BlinkCmpMenuSelection,Search:None',
           auto_show = false,
           draw = {
             components = {
@@ -46,6 +47,9 @@ return {
               }
             }
           }
+        },
+        documentation = {
+          window = { winhighlight = 'Normal:BlinkCmpDoc,FloatBorder:FloatBorder,EndOfBuffer:BlinkCmpDoc' },
         },
       },
       signature = { enabled = false },

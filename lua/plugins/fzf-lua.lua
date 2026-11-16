@@ -52,6 +52,16 @@ return {
       end
 
       local config = {
+        winopts = {
+          border = require('config.float-style').border,
+          -- Native fzf previewers also understand this name; Neovim maps it to the same glyphs.
+          preview = { border = 'border-thinblock' },
+        },
+        hls = {
+          normal = 'Normal', border = 'UserFzfBorder', title = 'UserFloatNormalTitle',
+          preview_normal = 'Normal', preview_border = 'UserFzfBorder', preview_title = 'UserFloatNormalTitle',
+          help_normal = 'Normal', help_border = 'UserFzfBorder',
+        },
         git = {
           blame = {
             winopts = {

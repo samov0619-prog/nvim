@@ -11,6 +11,8 @@ return {
     },
     config = function()
       require("nvim-tree").setup({
+        view = { float = { open_win_config = { border = require('config.float-style').border } } },
+        actions = { file_popup = { open_win_config = { border = require('config.float-style').border } } },
         hijack_netrw = false,
         hijack_directories = {
           enable    = false,

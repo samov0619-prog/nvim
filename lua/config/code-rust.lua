@@ -178,7 +178,7 @@ function M.expand_macro(bufnr)
     if err then vim.notify(err.message, vim.log.levels.WARN); return end
     if not result then vim.notify("No macro at cursor", vim.log.levels.INFO); return end
     vim.lsp.util.open_floating_preview(vim.split(result.expansion, "\n", { plain = true }), "rust", {
-      title = result.name, border = "rounded", focus_id = "rust-analyzer/expandMacro",
+      title = result.name, border = require('config.float-style').border, focus_id = "rust-analyzer/expandMacro",
     })
   end, bufnr)
 end

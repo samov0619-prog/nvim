@@ -478,6 +478,7 @@ local function help(s)
   api.nvim_buf_set_lines(buf, 0, -1, false, text)
   vim.bo[buf].bufhidden, vim.bo[buf].modifiable = "wipe", false
   s.help = api.nvim_open_win(buf, true, layout.help_config(buf))
+  vim.wo[s.help].winhighlight = 'Normal:NormalFloat,NormalFloat:NormalFloat,FloatBorder:FloatBorder,FloatTitle:FloatTitle'
   local function dismiss()
     if s.help and api.nvim_win_is_valid(s.help) then api.nvim_win_close(s.help, true) end
     if api.nvim_win_is_valid(s.windows.result) then api.nvim_set_current_win(s.windows.result) end

@@ -47,6 +47,7 @@ vim.opt.showmode          = false
 vim.o.laststatus          = 3
 
 -- EDITOR --
+require('config.float-style').setup()
 vim.opt.signcolumn        = "yes:1"
 
 vim.opt.number            = true

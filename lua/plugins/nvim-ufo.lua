@@ -43,6 +43,12 @@ return {
       local details = require("config.markdown-details")
       details.setup()
       require("ufo").setup({
+        preview = {
+          win_config = {
+            border = require('config.float-style').border,
+            winhighlight = 'Normal:Normal,FloatBorder:UserFloatNormalBorder,FloatTitle:UserFloatNormalTitle',
+          },
+        },
         close_fold_kinds_for_ft = {
           default = { "imports" },
           markdown = { "details" },
